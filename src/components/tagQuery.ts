@@ -36,7 +36,7 @@ export function getQuery(
     var secondWhereClause = "";
     if(filterTags.length > 0) {
         secondWhereClause = "WHERE " + filterTags.map(tag =>
-             `Tag != "${tag}")`)
+             `Tag != "${tag}"`)
              .join(" AND ");
     }
 

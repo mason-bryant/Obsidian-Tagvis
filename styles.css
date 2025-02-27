@@ -1,0 +1,14 @@
+/*
+
+This CSS file will be included with your plugin, and
+available in the app when your plugin is enabled.
+
+If your plugin does not need CSS, delete this file.
+
+*/
+
+.block-language-d3 {
+	padding: 0.4em;
+	border: 2px solid grey;
+	border-radius: 5px;
+}

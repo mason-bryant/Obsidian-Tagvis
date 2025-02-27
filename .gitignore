@@ -1,0 +1,37 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+debug.log*
+.log
+logs/
+*.log
+*.gz
+
+# Build files
+dist/
+build/
+.out/
+.next/
+.vercel/
+.netlify/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor & IDE settings
+.vscode/
+.idea/
+*.suo
+*.nt
+
+# Exclude macOS Finder (System Explorer) View States
+.DS_Store

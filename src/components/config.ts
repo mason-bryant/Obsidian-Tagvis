@@ -1,5 +1,8 @@
 interface StarburstConfig {
+    visType: string; // New field for visualization type
     initialTag: string;
+    ignoreFilesWithTags: string[];
+    filterTags: string[]; // New field for filter tags
     maxChildren: number;
     maxDepth: number;
     fontsize: number;
@@ -15,10 +18,12 @@ interface StarburstConfig {
         };
     };
     jsonError?: string; // Optional field for JSON parsing errors
-}
+ }
 
 const defaultValues  = {
+    "visType": "sunburst", // Default value for visType
     "initialTag": "",
+    "ignoreFilesWithTags": [], // Default value for ignoreTags
     "maxChildren": 15,
     "maxDepth": 2,
     "fontsize": 12,
@@ -33,13 +38,15 @@ const defaultValues  = {
             "left": 40
         }
     },
-}
+    "filterTags": [] // Default value for filterTags
+};
 
 export function parseConfig(jsonString: string): StarburstConfig {
     try {
         const parsedConfig = JSON.parse(jsonString);
         return {
             initialTag: parsedConfig.initialTag || defaultValues.initialTag,
+            ignoreFilesWithTags: parsedConfig.ignoreFilesWithTags || defaultValues.ignoreFilesWithTags,
             maxChildren: parsedConfig.maxChildren || defaultValues.maxChildren,
             maxDepth: parsedConfig.maxDepth || defaultValues.maxDepth,
             fontsize: parsedConfig.fontsize || defaultValues.fontsize,
@@ -53,7 +60,9 @@ export function parseConfig(jsonString: string): StarburstConfig {
                     bottom: parsedConfig.layout?.margin?.bottom || defaultValues.layout.margin.bottom,
                     left: parsedConfig.layout?.margin?.left || defaultValues.layout.margin.left,
                 }
-            }
+            },
+            visType: parsedConfig.visType || defaultValues.visType,
+            filterTags: parsedConfig.filterTags || defaultValues.filterTags,
         };
     } catch (error) {
         return {

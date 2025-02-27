@@ -4,7 +4,7 @@ import { parseConfig, StarburstConfig } from "./config";
 
 
 var emptyData = {
-    "name": "#",
+    "name": "",
     "children": [
         {
             "name": "#",
@@ -25,11 +25,21 @@ var m_config : StarburstConfig;
 var firstRun = true;
 var data : DataNode;
 
+//eg: AND contains(file.tags, "#zettel") = false AND contains(file.etags, "#zettel") = false
+var ignoreFilesWithTags = "";
+
 export function init(el, config) {
     firstRun = true;
     m_config = config;
     data = structuredClone(emptyData);
-    console.log("init called...");
+
+    if(m_config.ignoreFilesWithTags.length > 0) {
+        ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
+             `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
+             .join(" AND ");
+        console.log("filteredTags", ignoreFilesWithTags);
+        ignoreFilesWithTags = " AND " + ignoreFilesWithTags;
+    }
 
     d3.select(el).selectAll("*").remove();
     render(el);
@@ -125,8 +135,6 @@ export function render(el) {
         })
         .text(d => d.data.name);
 
-
-    // Add a circle in the center with text bound to the root node
     g.append("circle")
         .attr("r", radius / 5)
         .attr("fill", "white")
@@ -220,6 +228,7 @@ export function render(el) {
         var query;
         if(tag === null || tag === "") {
             query = `TABLE length(rows.file.link) AS "File Count" \n\
+                WHERE true ${ignoreFilesWithTags} \n\
                 FLATTEN file.tags AS Tag \n\
                 GROUP BY lower(Tag) \n
                 SORT length(rows.file.link) DESC \n
@@ -233,6 +242,7 @@ export function render(el) {
 
             query = `TABLE length(rows.file.link) AS "File Count" \n\
                 FROM ${tagsToFind} \n\
+                WHERE true ${ignoreFilesWithTags} \n\
                 FLATTEN file.tags AS Tag  \n\
                 WHERE ${tagsToExclude} \n\
                 GROUP BY lower(Tag)  \n\

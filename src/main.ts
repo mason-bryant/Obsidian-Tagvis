@@ -31,9 +31,8 @@ export default class ObsidianTagVis extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		
-
-		this.registerMarkdownCodeBlockProcessor('d3', (source, el, ctx) => {
+	
+		this.registerMarkdownCodeBlockProcessor('tagvis', (source, el, ctx) => {
 			console.log("Starting with ", source);
 
 			var parsedConfig = parseConfig(source);

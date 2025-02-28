@@ -1,10 +1,10 @@
 {
 	"id": "obsidian-tagvis",
 	"name": "obsidian-tagvis",
-	"version": "1.0.0",
+	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "",
 	"author": "Mason Bryant",
-	"authorUrl": "https://github.com/",
+	"authorUrl": "https://github.com/mason-bryant",
 	"isDesktopOnly": false
 }

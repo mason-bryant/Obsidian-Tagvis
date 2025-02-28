@@ -1,10 +1,11 @@
 import * as d3 from "d3";
 import { Plugin } from "obsidian";
 import { parseConfig, StarburstConfig } from "./config";
+import { getQuery } from './tagQuery';
 
 
 var emptyData = {
-    "name": "#",
+    "name": "",
     "children": [
         {
             "name": "#",
@@ -25,11 +26,21 @@ var m_config : StarburstConfig;
 var firstRun = true;
 var data : DataNode;
 
+//eg: AND contains(file.tags, "#zettel") = false AND contains(file.etags, "#zettel") = false
+var ignoreFilesWithTags = "";
+
 export function init(el, config) {
     firstRun = true;
     m_config = config;
     data = structuredClone(emptyData);
-    console.log("init called...");
+
+    if(m_config.ignoreFilesWithTags.length > 0) {
+        ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
+             `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
+             .join(" AND ");
+        console.log("filteredTags", ignoreFilesWithTags);
+        ignoreFilesWithTags = " AND " + ignoreFilesWithTags;
+    }
 
     d3.select(el).selectAll("*").remove();
     render(el);
@@ -125,8 +136,6 @@ export function render(el) {
         })
         .text(d => d.data.name);
 
-
-    // Add a circle in the center with text bound to the root node
     g.append("circle")
         .attr("r", radius / 5)
         .attr("fill", "white")
@@ -214,34 +223,13 @@ export function render(el) {
 
     async function runQuery(tag, tagHistory ) {
         console.log("query for tag", tag);
-        
-        const maxResults = 10;
+        var requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
 
-        var query;
-        if(tag === null || tag === "") {
-            query = `TABLE length(rows.file.link) AS "File Count" \n\
-                FLATTEN file.tags AS Tag \n\
-                GROUP BY lower(Tag) \n
-                SORT length(rows.file.link) DESC \n
-                Limit ${m_config.maxChildren}`;
-        } else {
-            tag = tag.replace(/^#/, "");
-            tag = tag.toLowerCase();
+        const tagsToExclude = [...tagHistory, ...m_config.filterTags];
 
-            const tagsToFind = tagHistory.map(t => `${t}`).join(" AND ");
-            const tagsToExclude = tagHistory.map(t => `lower(Tag) != "${t}"`).join("AND ");
-
-            query = `TABLE length(rows.file.link) AS "File Count" \n\
-                FROM ${tagsToFind} \n\
-                FLATTEN file.tags AS Tag  \n\
-                WHERE ${tagsToExclude} \n\
-                GROUP BY lower(Tag)  \n\
-                SORT length(rows.file.link) DESC \n\
-                Limit ${m_config.maxChildren}`;
-        }
-
-        console.log("Running Query:", query);
-
+        var query = getQuery(requiredTags, 
+            m_config.ignoreFilesWithTags, 
+            tagsToExclude, m_config.maxChildren);
 
         const dv = app.plugins.plugins["dataview"]?.api;
         if (!dv) {

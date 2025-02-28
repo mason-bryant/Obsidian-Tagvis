@@ -7,7 +7,7 @@ export function getQuery(
 ): string {
 
 
-    
+
     var fromClause = "";
     if(requiredTags.length > 0) {
         fromClause = "FROM " + requiredTags.map(tag =>
@@ -40,34 +40,3 @@ Limit ${limit}`
     console.log("query", query);
     return query;
 }
-
-
-/*
-
-       var query;
-        if(tag === null || tag === "") {
-            query = `TABLE length(rows.file.link) AS "File Count" \n\
-                WHERE true ${ignoreFilesWithTags} \n\
-                FLATTEN file.tags AS Tag \n\
-                GROUP BY lower(Tag) \n
-                SORT length(rows.file.link) DESC \n
-                Limit ${m_config.maxChildren}`;
-        } else {
-            tag = tag.replace(/^#/, "");
-            tag = tag.toLowerCase();
-
-            const tagsToFind = tagHistory.map(t => `${t}`).join(" AND ");
-            const tagsToExclude = tagHistory.map(t => `lower(Tag) != "${t}"`).join("AND ");
-
-            query = `TABLE length(rows.file.link) AS "File Count" \n\
-                FROM ${tagsToFind} \n\
-                WHERE true ${ignoreFilesWithTags} \n\
-                FLATTEN file.tags AS Tag  \n\
-                WHERE ${tagsToExclude} \n\
-                GROUP BY lower(Tag)  \n\
-                SORT length(rows.file.link) DESC \n\
-                Limit ${m_config.maxChildren}`;
-        }
-
-
-*/

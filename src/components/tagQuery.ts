@@ -1,3 +1,4 @@
+
 export function getQuery(
     requiredTags: string[], 
     ignoreFilesWithTags: string[], 
@@ -5,20 +6,8 @@ export function getQuery(
     limit: number
 ): string {
 
-    /* example query:
 
-    TABLE length(rows.file.link) AS "File Count"
-        FROM #ai AND #review AND #question
-        WHERE true 
-        AND contains(file.tags, "#zettel") = false AND contains(file.etags, "#zettel") = false
-    FLATTEN file.tags AS Tag 
-        WHERE Tag != "#ai"
-        GROUP BY Tag 
-        SORT length(rows.file.link) DESC
-    Limit 10
-
-    */
-
+    
     var fromClause = "";
     if(requiredTags.length > 0) {
         fromClause = "FROM " + requiredTags.map(tag =>

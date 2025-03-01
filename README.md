@@ -1,11 +1,13 @@
-<<<<<<< HEAD
-# Obsidian Tag Vis
-=======
 # Obsidian Tag Vis
 
 <img width="400" src="./screenshot.png" />
 
-This plugin is a plugin for visualizing tags as a sunburst
+This is a plugin for visualization the tags in your vault as a hierarchy.  
+
+It is very much a work in progress (including this README) so please stay tuned for updates.
+
+## Configuration:
+
 
 
 ~~~markdown
@@ -13,8 +15,9 @@ This plugin is a plugin for visualizing tags as a sunburst
 {
 	"initialTag": "#ai",
 	"maxDepth": 2,
-    "ignoreTags": [ "#foo", "#archived" ],
-	"maxChildren": 15,
+    "ignoreFilesWithTags": ["#foo", "#bar"],
+	"filterTags": ["#important"],
+    "maxChildren": 15,
 	"layout": {
 		"width": 800,
 		"height": 800
@@ -22,4 +25,22 @@ This plugin is a plugin for visualizing tags as a sunburst
 }
 ```
 ~~~
->>>>>>> b4470de (Started breaking out the query functionality. Haven't integrated it yet.)
+
+### A single ring of files that are tagged with #work
+
+~~~markdown
+
+```tagvis
+
+{
+	"initialTag": "#work",
+	"maxDepth": 1,
+	"ignoreFilesWithTags": ["#archived"],
+	"filterTags": [],
+	"maxChildren": 25,
+	"layout": {
+	}
+}
+
+```
+~~~

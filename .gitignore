@@ -1,5 +1,6 @@
 # Node.js dependencies
 main.js
+data.json
 
 node_modules/
 package-lock.json

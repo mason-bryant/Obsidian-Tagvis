@@ -11,8 +11,8 @@ var emptyData = {
             "name": "#",
             "value": 1,
             "children": [
-             ]
-         }
+            ]
+        }
     ]
 };
 
@@ -22,23 +22,21 @@ interface DataNode {
     children: DataNode[];
 }
 
-var m_config : StarburstConfig;
+var m_config: StarburstConfig;
 var firstRun = true;
-var data : DataNode;
-
-//eg: AND contains(file.tags, "#zettel") = false AND contains(file.etags, "#zettel") = false
+var data: DataNode;
 var ignoreFilesWithTags = "";
 
-export function init(el, config) {
+var tooltip: HTMLElement;
+export function init(el: HTMLElement, config) {
     firstRun = true;
     m_config = config;
     data = structuredClone(emptyData);
 
-    if(m_config.ignoreFilesWithTags.length > 0) {
+    if (m_config.ignoreFilesWithTags.length > 0) {
         ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
-             `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
-             .join(" AND ");
-        console.log("filteredTags", ignoreFilesWithTags);
+            `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
+            .join(" AND ");
         ignoreFilesWithTags = " AND " + ignoreFilesWithTags;
     }
 
@@ -48,22 +46,26 @@ export function init(el, config) {
 
 export function render(el) {
 
-    console.log("render called");
-
     if (!el) {
         console.error("Invalid DOM element");
         return;
     }
 
-    if((m_config.layout.width > el.clientWidth) && (el.clientWidth > 0)) {
+    if ((m_config.layout.width > el.clientWidth) && (el.clientWidth > 0)) {
         m_config.layout.width = el.clientWidth;
-        console.log("width adjusted to", m_config.layout.width);
+        console.log("Configured width is too large. Width adjusted to", m_config.layout.width);
     }
+
+    d3.selectAll("[id='obsidian-d3-tooltip']").remove();
+    tooltip = d3.select("body").append("div")
+        .attr("id", "obsidian-d3-tooltip")
+        .attr("class", "tagvis-tooltip")
+        .style("position", "absolute")
+        .style("pointer-events", "auto")
 
     const color = d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, data.children.length + 1));
     const radius = Math.min(m_config.layout.width, m_config.layout.height) / 2 - 20;
 
-    // Prepare the layout.
     const partition = data => d3.partition()
         .size([2 * Math.PI, radius])
         (d3.hierarchy(data)
@@ -79,8 +81,7 @@ export function render(el) {
         .outerRadius(d => d.y1 - 1);
 
     const root = partition(data);
-  
-    // Create the SVG container.
+
     const svg = d3.select(el)
         .append("svg")
         .attr("id", "findme")
@@ -90,31 +91,33 @@ export function render(el) {
         .attr("preserveAspectRatio", "xMidYMid meet")
         .style("background", "white");
 
-    // Add an arc for each element, with a title for tooltips.
     const format = d3.format(",d");
     const g = svg.append("g")
         .attr("transform", `translate(${m_config.layout.width / 2}, ${m_config.layout.height / 2})`)
         .attr("fill-opacity", 0.6);
 
-    const paths = g.selectAll("path")
-        .data(root.descendants().filter(d => d.depth))
+    interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
+        data: DataNode;
+    }
+
+    const paths = g.selectAll<SVGPathElement, ArcDatum>("path")
+        .data(root.descendants().filter(d => d.depth) as ArcDatum[])
         .join("path")
         .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(d.data.name); })
         .attr("d", arc)
-        .on("click", function(event, d) {
-            console.log("Clicked path:", d.data.name);
-            onNodeClick(data, d.data.name); // Add a child to the source data
+        .attr("pointer-events", "auto")
+        .on("click", function (event: MouseEvent, d: ArcDatum) {
+            onNodeClick(data, d.data.name); 
         })
-        .on("mouseover", function(event, d) {
-            // TODO: add a div below with all the files that include the 
-            //    tag and it's history
-            //    eg> d.data.name + d.data.tagHistory
-            console.log("Hovered over node:", d.data.name);
+        .on("mouseover", function (event: MouseEvent, d: ArcDatum) {
+            mouseoverVisNode(event, d.data);   
+        })
+        .on("mouseout", function (event: MouseEvent, d: ArcDatum) {
+            mouseleftVisNode(event, d.data);  
         })
         .append("title")
         .text(d => `${d.ancestors().map(d => d.data.name).reverse().join("/")}\n${format(d.value)}`);
 
-    // Add a label for each element.
     g.selectAll("text")
         .data(root.descendants().filter(d => d.depth && (d.y0 + d.y1) / 2 * (d.x1 - d.x0) > 10))
         .join("text")
@@ -127,14 +130,17 @@ export function render(el) {
         .attr("text-anchor", "middle")
         .attr("font-size", m_config.fontsize)
         .attr("font-family", "sans-serif")
-        .on("click", function(event, d) {
-            console.log("Clicked text:", d.data.name);
-            onNodeClick(data, d.data.name); // Add a child to the source data
+        .on("click", function (event, d) {
+            onNodeClick(data, d.data.name); 
         })
-        .on("mouseover", function(event, d) {
-            console.log("Hovered over text:", d.data.name);
+        .on("mouseover", function (event, d) {
+            mouseoverVisNode(event, d.data);            
+        })
+        .on("mouseout", function (event, d) {
+            mouseleftVisNode(event, d.data);  
         })
         .text(d => d.data.name);
+
 
     g.append("circle")
         .attr("r", radius / 5)
@@ -149,14 +155,12 @@ export function render(el) {
         .attr("font-family", "sans-serif")
         .text(root.data.name);
 
-    if(firstRun) {
+    if (firstRun) {
         firstRun = false;
         start(m_config.initialTag);
-        console.log("First run, done");
     }
-     
-    console.log("end....");
-    
+
+
     function sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -168,7 +172,7 @@ export function render(el) {
 
     function start(initialTag: string) {
 
-        if(initialTag === null || initialTag === "") {
+        if (initialTag === null || initialTag === "") {
             executeQuery("", data, [], 0)
         } else {
             data.name = initialTag;
@@ -177,29 +181,29 @@ export function render(el) {
     }
 
     async function executeQuery(
-        tag: string, 
-        data: DataNode, 
-        tagHistory: string[], 
+        tag: string,
+        data: DataNode,
+        tagHistory: string[],
         initialDepth: number) {
 
         var depth = tagHistory.length + 1 - initialDepth;
 
-        if(depth > m_config.maxDepth) {
+        if (depth > m_config.maxDepth) {
             console.log("at depth")
             return;
         }
-        d3.select(el).selectAll("*").remove(); // Clear the existing visualization
+        d3.select(el).selectAll("*").remove(); 
         render(el);
         await sleep(10);
 
         await runQuery(tag, tagHistory).then(result => {
-           if(!result.successful) {
+            if (!result.successful) {
                 console.log("query failed");
-                return;              
-            } 
+                return;
+            }
 
             data.children = [];
-            result.value.values.forEach( item =>{
+            result.value.values.forEach(item => {
                 var tag = item[0];
                 var child = {
                     name: tag,
@@ -211,24 +215,23 @@ export function render(el) {
 
                 var newTagHistory = tagHistory.slice();
                 newTagHistory.push(tag);
-                if(depth < m_config.maxDepth) {
+                if (depth < m_config.maxDepth) {
                     executeQuery(tag, child, newTagHistory, initialDepth);
                 }
 
             });
-            d3.select(el).selectAll("*").remove(); // Clear the existing visualization
-            render(el); // Re-render the chart with the updated data
+            d3.select(el).selectAll("*").remove(); 
+            render(el); 
         });
     }
 
-    async function runQuery(tag, tagHistory ) {
-        console.log("query for tag", tag);
+    async function runQuery(tag, tagHistory) {
         var requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
 
         const tagsToExclude = [...tagHistory, ...m_config.filterTags];
 
-        var query = getQuery(requiredTags, 
-            m_config.ignoreFilesWithTags, 
+        var query = getQuery(requiredTags,
+            m_config.ignoreFilesWithTags,
             tagsToExclude, m_config.maxChildren);
 
         const dv = app.plugins.plugins["dataview"]?.api;
@@ -236,15 +239,112 @@ export function render(el) {
             console.error("Dataview plugin is not enabled.");
             return;
         }
-        
+
         try {
-            const result = await dv.query(query);  // Waits here until the query finishes
-            console.log("Dataview Query Result:", result);
-            return result;  // This will return the data once ready
+            const result = await dv.query(query);  
+            return result; 
         } catch (error) {
             console.error("Dataview Query Error:", error);
         }
     }
 
+    async function populateTooltip(tooltip, data) {
+        var tag = data.name;
+        var requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
+        var fileQuery = getQuery(requiredTags,
+            m_config.ignoreFilesWithTags,
+            [], m_config.maxChildren, false);
+  
+        try {
+            const dv = app.plugins.plugins["dataview"]?.api;
+            if (!dv) {
+                console.error("Dataview plugin is not enabled.");
+                return;
+            }
+
+            const result = await dv.query(fileQuery); 
+
+            tooltip.selectAll("*").remove();
+
+            tooltip.append("br")
+                .attr("class", "tagvis-tooltip-header")
+                .text(`Tag: ${data.name}`);             
+
+            result.value.values.forEach(item => {
+                var link = tooltip.append("a")
+                    .attr("target", "_blank")
+                    .attr("href", `obsidian://open?file=${item[0].path}`);
+                link.text(item[1]);
+
+                hookMarkdownLinkMouseEventHandlers(app, link, item[0].path, item[1]);
+            });
+           return result;  
+        } catch (error) {
+            console.error("Dataview Query Error:", error);
+        }
+        
+    }
+    
+    function mouseoverVisNode(event: MouseEvent, data: DataNode) {
+        showTooltip(event, data);
+        
+    }
+
+    function mouseleftVisNode(event: MouseEvent, data: DataNode) {
+    }
+
+    function showTooltip(event: MouseEvent, data: DataNode) {
+        populateTooltip(tooltip, data);
+
+        tooltip.style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px")
+                .style("display", "block")
+
+        tooltip.on("mouseleave", function () {
+                hideTooltip();
+        })
+    }
+
+    function hideTooltip() {
+        tooltip.style("display", "none")
+    }
+}
+
+export function hookMarkdownLinkMouseEventHandlers(
+	app: App,
+	url: HTMLElement,
+	filePath: string,
+    linkText: string
+) {
+    const plugin = app.plugins.getPlugin("obsidian-tagvis") as ObsidianTagVis;
+
+    url.on("click", function (event: MouseEvent) {
+        event.preventDefault();
+			if (linkText) {
+				app.workspace.openLinkText(
+					linkText,
+					"",
+                    true
+				);
+			}
+		});
+
+    if (!plugin.settings.displayLinkPreview) {
+        return;
+    }
+    
+	url.on("mouseover", function (event: MouseEvent) {
+			event.preventDefault();
+			if (linkText) {
+				app.workspace.trigger("hover-link", {
+					event,
+					source: "preview",
+					hoverParent: { hoverPopover: null},
+					targetEl: event.currentTarget,
+					linktext: linkText,
+					sourcePath: filePath,
+				});
+			}
+		});
 }
 

@@ -12,3 +12,29 @@ If your plugin does not need CSS, delete this file.
 	border: 2px solid grey;
 	border-radius: 5px;
 }
+
+
+.tagvis-tooltip {
+	background-color: black;
+	border: 1px solid black;
+	border-radius: 5px;
+	padding: 0.5em;
+	border-radius: 5px;
+	text-align: left;
+}
+
+.tagvis-tooltip-header {
+	font-weight: bold;
+	background-color:aliceblue !important
+}
+
+.tagvis-tooltip a {
+    display: inline-block;
+	margin-bottom: 3px;
+}
+
+._popover.hover-popover {
+    top: 150px !important;
+    left: 300px !important;
+    transform: none !important;
+}

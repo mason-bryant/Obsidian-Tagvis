@@ -35,5 +35,19 @@ describe('getQuery', () => {
         expect(result.replace(/\s+/g, ' ')).toBe(expected.replace(/\s+/g, ' '));
     });
 
+    it('Flattened: Should produce a flattened query with all the params set', () => {
+        const result = getQuery(["#foo", "#bar"],
+            ["#ignore1", "#ignore2"],
+            [""], 12, false);
+
+        const expected = `TABLE length(rows.file.link) AS "File Count"
+    FROM #foo AND #bar\n\
+    WHERE contains(file.tags, "#ignore1") = false AND contains(file.etags, "#ignore1") = false AND contains(file.tags, "#ignore2") = false AND contains(file.etags, "#ignore2") = false\n\
+    Limit 12`;
+
+        console.log("result", result.replace(/\s+/g, ' '));
+
+        expect(result.replace(/\s+/g, ' ')).toBe(expected.replace(/\s+/g, ' '));
+    });
 
 });

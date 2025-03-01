@@ -27,7 +27,7 @@ var firstRun = true;
 var data: DataNode;
 var ignoreFilesWithTags = "";
 
-var tooltip: {};
+var tooltip: HTMLElement;
 export function init(el: HTMLElement, config) {
     firstRun = true;
     m_config = config;
@@ -137,7 +137,7 @@ export function render(el) {
         .attr("font-family", "sans-serif")
         .on("click", function (event, d) {
             console.log("Clicked text:", d.data.name);
-            onNodeClick(data, d.data.name); // Add a child to the source data
+            onNodeClick(data, d.data.name); 
         })
         .on("mouseover", function (event, d) {
             mouseoverVisNode(event, d.data);            
@@ -200,7 +200,7 @@ export function render(el) {
             console.log("at depth")
             return;
         }
-        d3.select(el).selectAll("*").remove(); // Clear the existing visualization
+        d3.select(el).selectAll("*").remove(); 
         render(el);
         await sleep(10);
 
@@ -228,8 +228,8 @@ export function render(el) {
                 }
 
             });
-            d3.select(el).selectAll("*").remove(); // Clear the existing visualization
-            render(el); // Re-render the chart with the updated data
+            d3.select(el).selectAll("*").remove(); 
+            render(el); 
         });
     }
 
@@ -250,9 +250,9 @@ export function render(el) {
         }
 
         try {
-            const result = await dv.query(query);  // Waits here until the query finishes
+            const result = await dv.query(query);  
             console.log("Dataview Query Result:", result);
-            return result;  // This will return the data once ready
+            return result; 
         } catch (error) {
             console.error("Dataview Query Error:", error);
         }
@@ -293,7 +293,7 @@ export function render(el) {
 
                 hookMarkdownLinkMouseEventHandlers(app, link, item[0].path, item[1]);
             });
-           return result;  // This will return the data once ready
+           return result;  
         } catch (error) {
             console.error("Dataview Query Error:", error);
         }
@@ -308,7 +308,6 @@ export function render(el) {
 
     function mouseleftVisNode(event: MouseEvent, data: DataNode) {
         console.log("mouseleftVisNode", data.name);
-        //hideTooltip();
     }
 
     function showTooltip(event: MouseEvent, data: DataNode) {

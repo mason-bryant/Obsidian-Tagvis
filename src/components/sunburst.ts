@@ -37,18 +37,14 @@ export function init(el: HTMLElement, config) {
         ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
             `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
             .join(" AND ");
-        console.log("filteredTags", ignoreFilesWithTags);
         ignoreFilesWithTags = " AND " + ignoreFilesWithTags;
     }
-
 
     d3.select(el).selectAll("*").remove();
     render(el);
 }
 
-
 export function render(el) {
-    console.log("render called");
 
     if (!el) {
         console.error("Invalid DOM element");
@@ -57,9 +53,8 @@ export function render(el) {
 
     if ((m_config.layout.width > el.clientWidth) && (el.clientWidth > 0)) {
         m_config.layout.width = el.clientWidth;
-        console.log("width adjusted to", m_config.layout.width);
+        console.log("Configured width is too large. Width adjusted to", m_config.layout.width);
     }
-    console.log("Here");
 
     d3.selectAll("[id='obsidian-d3-tooltip']").remove();
     tooltip = d3.select("body").append("div")
@@ -136,7 +131,6 @@ export function render(el) {
         .attr("font-size", m_config.fontsize)
         .attr("font-family", "sans-serif")
         .on("click", function (event, d) {
-            console.log("Clicked text:", d.data.name);
             onNodeClick(data, d.data.name); 
         })
         .on("mouseover", function (event, d) {
@@ -164,10 +158,8 @@ export function render(el) {
     if (firstRun) {
         firstRun = false;
         start(m_config.initialTag);
-        console.log("First run, done");
     }
 
-    console.log("end....");
 
     function sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -234,7 +226,6 @@ export function render(el) {
     }
 
     async function runQuery(tag, tagHistory) {
-        console.log("query for tag", tag);
         var requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
 
         const tagsToExclude = [...tagHistory, ...m_config.filterTags];
@@ -251,7 +242,6 @@ export function render(el) {
 
         try {
             const result = await dv.query(query);  
-            console.log("Dataview Query Result:", result);
             return result; 
         } catch (error) {
             console.error("Dataview Query Error:", error);
@@ -264,10 +254,6 @@ export function render(el) {
         var fileQuery = getQuery(requiredTags,
             m_config.ignoreFilesWithTags,
             [], m_config.maxChildren, false);
-
-        console.log("count", data.value);
-        console.log("fileQuery", fileQuery);
-
   
         try {
             const dv = app.plugins.plugins["dataview"]?.api;
@@ -277,7 +263,6 @@ export function render(el) {
             }
 
             const result = await dv.query(fileQuery); 
-            console.log("Dataview Query Result:", result);
 
             tooltip.selectAll("*").remove();
 
@@ -301,13 +286,11 @@ export function render(el) {
     }
     
     function mouseoverVisNode(event: MouseEvent, data: DataNode) {
-        console.log("mouseoverVisNode", data.name);
         showTooltip(event, data);
         
     }
 
     function mouseleftVisNode(event: MouseEvent, data: DataNode) {
-        console.log("mouseleftVisNode", data.name);
     }
 
     function showTooltip(event: MouseEvent, data: DataNode) {
@@ -318,7 +301,6 @@ export function render(el) {
                 .style("display", "block")
 
         tooltip.on("mouseleave", function () {
-                console.log("mouseleave 2");
                 hideTooltip();
         })
     }
@@ -334,6 +316,8 @@ export function hookMarkdownLinkMouseEventHandlers(
 	filePath: string,
     linkText: string
 ) {
+    const plugin = app.plugins.getPlugin("obsidian-tagvis") as ObsidianTagVis;
+
     url.on("click", function (event: MouseEvent) {
         event.preventDefault();
 			if (linkText) {
@@ -345,6 +329,10 @@ export function hookMarkdownLinkMouseEventHandlers(
 			}
 		});
 
+    if (!plugin.settings.displayLinkPreview) {
+        return;
+    }
+    
 	url.on("mouseover", function (event: MouseEvent) {
 			event.preventDefault();
 			if (linkText) {

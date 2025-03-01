@@ -18,11 +18,11 @@ import { parseConfig } from "./components/config";
 // Remember to rename these classes and interfaces!
 
 interface ObsidianD3jsSettings {
-	mySetting: string;
+	displayLinkPreview: boolean;
 }
 
 const DEFAULT_SETTINGS: ObsidianD3jsSettings = {
-	mySetting: "default",
+	displayLinkPreview: true,
 };
 
 export default class ObsidianTagVis extends Plugin {
@@ -31,7 +31,6 @@ export default class ObsidianTagVis extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-	
 		this.registerMarkdownCodeBlockProcessor('tagvis', (source, el, ctx) => {
 			console.log("Starting with ", source);
 
@@ -49,7 +48,7 @@ export default class ObsidianTagVis extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new TagvisSettingsTab(this.app, this));
 	}
 	onunload() { }
 
@@ -63,10 +62,10 @@ export default class ObsidianTagVis extends Plugin {
 
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class TagvisSettingsTab extends PluginSettingTab {
+	plugin: ObsidianTagVis;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: ObsidianTagVis) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -78,12 +77,12 @@ class SampleSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Display Link Preview')
-			.setDesc('')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setDesc("Turn this on to display a preview of the tagged link when it's hovered over.\
+				It can sometimes get in the way of the links.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.displayLinkPreview)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.displayLinkPreview = value;
 					await this.plugin.saveSettings();
 				}));
 	}

@@ -5,6 +5,9 @@ on:
     tags:
       - "*"  # Trigger when pushing a tag like v1.0.0
 
+permissions:
+  contents: write  # Ensures GITHUB_TOKEN can create a release
+
 jobs:
   release:
     runs-on: ubuntu-latest

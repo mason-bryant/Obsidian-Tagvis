@@ -12,21 +12,17 @@ import {
 import * as d3 from "d3";
 import _ from "lodash"
 
+import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "./components/settings";
+
 import * as sunburst from "./components/sunburst";
 import { parseConfig } from "./components/config";
 
 // Remember to rename these classes and interfaces!
 
-interface ObsidianD3jsSettings {
-	displayLinkPreview: boolean;
-}
-
-const DEFAULT_SETTINGS: ObsidianD3jsSettings = {
-	displayLinkPreview: true,
-};
 
 export default class ObsidianTagVis extends Plugin {
-	settings: ObsidianD3jsSettings;
+	public settings: ObsidianD3jsSettings;
+
 
 	async onload() {
 		await this.loadSettings();
@@ -39,7 +35,7 @@ export default class ObsidianTagVis extends Plugin {
 				if (parsedConfig.jsonError) {
 					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;
 				} else {
-					sunburst.init(el, parsedConfig);
+					sunburst.init(this.app, el, this.settings, parsedConfig);
 					console.log("end");
 
 				}

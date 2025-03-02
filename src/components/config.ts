@@ -1,4 +1,4 @@
-interface StarburstConfig {
+export interface StarburstConfig {
     visType: string; // New field for visualization type
     initialTag: string;
     ignoreFilesWithTags: string[];
@@ -7,6 +7,7 @@ interface StarburstConfig {
     maxDepth: number;
     fontsize: number;
     fontFamily: string;
+    maxTagLength: number;
     layout: {
         width: number;
         height: number;
@@ -21,13 +22,15 @@ interface StarburstConfig {
  }
 
 const defaultValues  = {
-    "visType": "sunburst", // Default value for visType
+    "visType": "sunburst", 
     "initialTag": "",
-    "ignoreFilesWithTags": [], // Default value for ignoreTags
+    "ignoreFilesWithTags": [], 
+    "filterTags": [],
     "maxChildren": 15,
     "maxDepth": 2,
     "fontsize": 12,
     "fontFamily": "sans-serif",
+    "maxTagLength": 10,
     "layout": {
         "width": 800,
         "height": 600,
@@ -37,8 +40,8 @@ const defaultValues  = {
             "bottom": 40,
             "left": 40
         }
-    },
-    "filterTags": [] // Default value for filterTags
+    }
+    
 };
 
 export function parseConfig(jsonString: string): StarburstConfig {
@@ -51,6 +54,7 @@ export function parseConfig(jsonString: string): StarburstConfig {
             maxDepth: parsedConfig.maxDepth || defaultValues.maxDepth,
             fontsize: parsedConfig.fontsize || defaultValues.fontsize,
             fontFamily: parsedConfig.fontFamily || defaultValues.fontFamily,
+            maxTagLength: parsedConfig.maxTagLength || defaultValues.maxTagLength,
             layout: {
                 width: parsedConfig.layout?.width || defaultValues.layout.width,
                 height: parsedConfig.layout?.height || defaultValues.layout.height,
@@ -67,7 +71,7 @@ export function parseConfig(jsonString: string): StarburstConfig {
     } catch (error) {
         return {
             ...defaultValues,
-            jsonError: error.message
+            jsonError: (error as Error).message
         };
     }
 }

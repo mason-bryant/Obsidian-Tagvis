@@ -1,25 +1,43 @@
+import {
+	App,
+} from "obsidian";
+
 import * as d3 from "d3";
 import { Plugin } from "obsidian";
-import { parseConfig, StarburstConfig } from "./config";
+import { StarburstConfig, parseConfig } from "./config";
 import { getQuery } from './tagQuery';
+import { ObsidianD3jsSettings } from "./settings";
 
 
-var emptyData = {
-    "name": "",
-    "children": [
-        {
-            "name": "#",
-            "value": 1,
-            "children": [
-            ]
-        }
-    ]
-};
+var m_maxNodeLength = 10;
 
-interface DataNode {
-    name: string;
+class DataNode {
+    m_name: string;
     value?: number;
     children: DataNode[];
+    tagHistory?: string[];
+
+    constructor() {
+        this.m_name = "#";
+        this.children = [];
+    }
+
+    get name() {
+        return this.m_name;
+    }
+
+    set name(name: string) {
+        this.m_name = name;
+    }
+
+    get truncatedName() {
+        return this.m_name.length > m_config.maxTagLength 
+            ? this.m_name.substring(0, m_maxNodeLength) + "..." : this.m_name;
+    }
+}
+
+interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
+    data: DataNode;
 }
 
 var m_config: StarburstConfig;
@@ -27,11 +45,21 @@ var firstRun = true;
 var data: DataNode;
 var ignoreFilesWithTags = "";
 
-var tooltip: HTMLElement;
-export function init(el: HTMLElement, config) {
+var tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
+var m_settings: ObsidianD3jsSettings;
+var m_app: App;
+
+export function init(app: App, 
+    el: HTMLElement, 
+    settings: ObsidianD3jsSettings,
+    config: StarburstConfig) {
+
     firstRun = true;
     m_config = config;
-    data = structuredClone(emptyData);
+    m_app = app;
+    m_settings = settings;
+
+    data = new DataNode();
 
     if (m_config.ignoreFilesWithTags.length > 0) {
         ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
@@ -70,9 +98,9 @@ export function render(el) {
         .size([2 * Math.PI, radius])
         (d3.hierarchy(data)
             .sum(d => d.value)
-            .sort((a, b) => b.value - a.value));
+            .sort((a, b) => b.value - a.value)) as ArcDatum;
 
-    const arc = d3.arc()
+    const arc = d3.arc<ArcDatum>()
         .startAngle(d => d.x0)
         .endAngle(d => d.x1)
         .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
@@ -95,10 +123,6 @@ export function render(el) {
     const g = svg.append("g")
         .attr("transform", `translate(${m_config.layout.width / 2}, ${m_config.layout.height / 2})`)
         .attr("fill-opacity", 0.6);
-
-    interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
-        data: DataNode;
-    }
 
     const paths = g.selectAll<SVGPathElement, ArcDatum>("path")
         .data(root.descendants().filter(d => d.depth) as ArcDatum[])
@@ -130,17 +154,16 @@ export function render(el) {
         .attr("text-anchor", "middle")
         .attr("font-size", m_config.fontsize)
         .attr("font-family", "sans-serif")
-        .on("click", function (event, d) {
+        .on("click", function (event, d: ArcDatum) {
             onNodeClick(data, d.data.name); 
         })
-        .on("mouseover", function (event, d) {
+        .on("mouseover", function (event, d: ArcDatum) {
             mouseoverVisNode(event, d.data);            
         })
-        .on("mouseout", function (event, d) {
+        .on("mouseout", function (event, d: ArcDatum) {
             mouseleftVisNode(event, d.data);  
         })
-        .text(d => d.data.name);
-
+        .text(d => d.data.truncatedName);
 
     g.append("circle")
         .attr("r", radius / 5)
@@ -205,12 +228,13 @@ export function render(el) {
             data.children = [];
             result.value.values.forEach(item => {
                 var tag = item[0];
-                var child = {
-                    name: tag,
-                    tagHistory: tagHistory,
-                    value: item[1],
-                    children: []
-                };
+
+                var child = new DataNode();
+                child.name = tag;
+                child.tagHistory = tagHistory;
+                child.value = item[1];
+                child.children = [];
+
                 data.children.push(child);
 
                 var newTagHistory = tagHistory.slice();
@@ -234,7 +258,8 @@ export function render(el) {
             m_config.ignoreFilesWithTags,
             tagsToExclude, m_config.maxChildren);
 
-        const dv = app.plugins.plugins["dataview"]?.api;
+        //TODO: Don't like the cast to any here
+        const dv = (m_app as any).plugins.plugins["dataview"]?.api;
         if (!dv) {
             console.error("Dataview plugin is not enabled.");
             return;
@@ -256,13 +281,19 @@ export function render(el) {
             [], m_config.maxChildren, false);
   
         try {
-            const dv = app.plugins.plugins["dataview"]?.api;
+            const dv = (m_app as any).plugins.plugins["dataview"]?.api;
             if (!dv) {
                 console.error("Dataview plugin is not enabled.");
                 return;
             }
 
             const result = await dv.query(fileQuery); 
+
+            if (!result.successful) {
+                console.log("query failed", fileQuery);
+                return;
+            }
+            console.log("ran query", fileQuery);
 
             tooltip.selectAll("*").remove();
 
@@ -271,6 +302,8 @@ export function render(el) {
                 .text(`Tag: ${data.name}`);             
 
             result.value.values.forEach(item => {
+                console.log(" > " + item[1]);
+                
                 var link = tooltip.append("a")
                     .attr("target", "_blank")
                     .attr("href", `obsidian://open?file=${item[0].path}`);
@@ -340,7 +373,7 @@ export function hookMarkdownLinkMouseEventHandlers(
 					event,
 					source: "preview",
 					hoverParent: { hoverPopover: null},
-					targetEl: event.currentTarget,
+					targetEl: event.currentTarget as HTMLElement,
 					linktext: linkText,
 					sourcePath: filePath,
 				});

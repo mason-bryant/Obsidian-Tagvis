@@ -1,4 +1,4 @@
-interface StarburstConfig {
+export interface StarburstConfig {
     visType: string; // New field for visualization type
     initialTag: string;
     ignoreFilesWithTags: string[];
@@ -67,7 +67,7 @@ export function parseConfig(jsonString: string): StarburstConfig {
     } catch (error) {
         return {
             ...defaultValues,
-            jsonError: error.message
+            jsonError: (error as Error).message
         };
     }
 }

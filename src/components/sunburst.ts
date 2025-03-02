@@ -1,7 +1,12 @@
+import {
+	App,
+} from "obsidian";
+
 import * as d3 from "d3";
 import { Plugin } from "obsidian";
-import { parseConfig, StarburstConfig } from "./config";
+import { StarburstConfig, parseConfig } from "./config";
 import { getQuery } from './tagQuery';
+import { ObsidianD3jsSettings } from "./settings";
 
 
 var emptyData = {
@@ -21,16 +26,28 @@ interface DataNode {
     value?: number;
     children: DataNode[];
 }
+interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
+    data: DataNode;
+}
 
 var m_config: StarburstConfig;
 var firstRun = true;
 var data: DataNode;
 var ignoreFilesWithTags = "";
 
-var tooltip: HTMLElement;
-export function init(el: HTMLElement, config) {
+var tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
+var m_settings: ObsidianD3jsSettings;
+var m_app: App;
+
+export function init(app: App, 
+    el: HTMLElement, 
+    settings: ObsidianD3jsSettings,
+    config: StarburstConfig) {
+
     firstRun = true;
     m_config = config;
+    m_app = app;
+
     data = structuredClone(emptyData);
 
     if (m_config.ignoreFilesWithTags.length > 0) {
@@ -70,9 +87,9 @@ export function render(el) {
         .size([2 * Math.PI, radius])
         (d3.hierarchy(data)
             .sum(d => d.value)
-            .sort((a, b) => b.value - a.value));
+            .sort((a, b) => b.value - a.value)) as ArcDatum;
 
-    const arc = d3.arc()
+    const arc = d3.arc<ArcDatum>()
         .startAngle(d => d.x0)
         .endAngle(d => d.x1)
         .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
@@ -95,10 +112,6 @@ export function render(el) {
     const g = svg.append("g")
         .attr("transform", `translate(${m_config.layout.width / 2}, ${m_config.layout.height / 2})`)
         .attr("fill-opacity", 0.6);
-
-    interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
-        data: DataNode;
-    }
 
     const paths = g.selectAll<SVGPathElement, ArcDatum>("path")
         .data(root.descendants().filter(d => d.depth) as ArcDatum[])
@@ -130,17 +143,16 @@ export function render(el) {
         .attr("text-anchor", "middle")
         .attr("font-size", m_config.fontsize)
         .attr("font-family", "sans-serif")
-        .on("click", function (event, d) {
+        .on("click", function (event, d: ArcDatum) {
             onNodeClick(data, d.data.name); 
         })
-        .on("mouseover", function (event, d) {
+        .on("mouseover", function (event, d: ArcDatum) {
             mouseoverVisNode(event, d.data);            
         })
-        .on("mouseout", function (event, d) {
+        .on("mouseout", function (event, d: ArcDatum) {
             mouseleftVisNode(event, d.data);  
         })
         .text(d => d.data.name);
-
 
     g.append("circle")
         .attr("r", radius / 5)
@@ -234,7 +246,10 @@ export function render(el) {
             m_config.ignoreFilesWithTags,
             tagsToExclude, m_config.maxChildren);
 
-        const dv = app.plugins.plugins["dataview"]?.api;
+        console.log("test");
+
+        //TODO: Don't like the cast to any here
+        const dv = (m_app as any).plugins.plugins["dataview"]?.api;
         if (!dv) {
             console.error("Dataview plugin is not enabled.");
             return;
@@ -256,7 +271,7 @@ export function render(el) {
             [], m_config.maxChildren, false);
   
         try {
-            const dv = app.plugins.plugins["dataview"]?.api;
+            const dv = (m_app as any).plugins.plugins["dataview"]?.api;
             if (!dv) {
                 console.error("Dataview plugin is not enabled.");
                 return;
@@ -312,13 +327,13 @@ export function render(el) {
 
 export function hookMarkdownLinkMouseEventHandlers(
 	app: App,
-	url: HTMLElement,
+	//url: HTMLElement,
+    url: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
 	filePath: string,
     linkText: string
 ) {
-    const plugin = app.plugins.getPlugin("obsidian-tagvis") as ObsidianTagVis;
 
-    url.on("click", function (event: MouseEvent) {
+    url.on("click", function (event: MouseEvent, d:any) {
         event.preventDefault();
 			if (linkText) {
 				app.workspace.openLinkText(
@@ -329,7 +344,7 @@ export function hookMarkdownLinkMouseEventHandlers(
 			}
 		});
 
-    if (!plugin.settings.displayLinkPreview) {
+    if (!m_settings.displayLinkPreview) {
         return;
     }
     

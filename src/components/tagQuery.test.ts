@@ -1,3 +1,4 @@
+import { expect, describe, it } from '@jest/globals';
 import { getQuery } from './tagQuery';
 
 describe('getQuery', () => {

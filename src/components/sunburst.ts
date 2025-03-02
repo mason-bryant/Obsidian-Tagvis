@@ -9,23 +9,33 @@ import { getQuery } from './tagQuery';
 import { ObsidianD3jsSettings } from "./settings";
 
 
-var emptyData = {
-    "name": "",
-    "children": [
-        {
-            "name": "#",
-            "value": 1,
-            "children": [
-            ]
-        }
-    ]
-};
+var m_maxNodeLength = 10;
 
-interface DataNode {
-    name: string;
+class DataNode {
+    m_name: string;
     value?: number;
     children: DataNode[];
+    tagHistory?: string[];
+
+    constructor() {
+        this.m_name = "#";
+        this.children = [];
+    }
+
+    get name() {
+        return this.m_name;
+    }
+
+    set name(name: string) {
+        this.m_name = name;
+    }
+
+    get truncatedName() {
+        return this.m_name.length > m_config.maxTagLength 
+            ? this.m_name.substring(0, m_maxNodeLength) + "..." : this.m_name;
+    }
 }
+
 interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
@@ -47,8 +57,9 @@ export function init(app: App,
     firstRun = true;
     m_config = config;
     m_app = app;
+    m_settings = settings;
 
-    data = structuredClone(emptyData);
+    data = new DataNode();
 
     if (m_config.ignoreFilesWithTags.length > 0) {
         ignoreFilesWithTags = m_config.ignoreFilesWithTags.map(tag =>
@@ -152,7 +163,7 @@ export function render(el) {
         .on("mouseout", function (event, d: ArcDatum) {
             mouseleftVisNode(event, d.data);  
         })
-        .text(d => d.data.name);
+        .text(d => d.data.truncatedName);
 
     g.append("circle")
         .attr("r", radius / 5)
@@ -217,12 +228,13 @@ export function render(el) {
             data.children = [];
             result.value.values.forEach(item => {
                 var tag = item[0];
-                var child = {
-                    name: tag,
-                    tagHistory: tagHistory,
-                    value: item[1],
-                    children: []
-                };
+
+                var child = new DataNode();
+                child.name = tag;
+                child.tagHistory = tagHistory;
+                child.value = item[1];
+                child.children = [];
+
                 data.children.push(child);
 
                 var newTagHistory = tagHistory.slice();
@@ -245,8 +257,6 @@ export function render(el) {
         var query = getQuery(requiredTags,
             m_config.ignoreFilesWithTags,
             tagsToExclude, m_config.maxChildren);
-
-        console.log("test");
 
         //TODO: Don't like the cast to any here
         const dv = (m_app as any).plugins.plugins["dataview"]?.api;
@@ -279,6 +289,12 @@ export function render(el) {
 
             const result = await dv.query(fileQuery); 
 
+            if (!result.successful) {
+                console.log("query failed", fileQuery);
+                return;
+            }
+            console.log("ran query", fileQuery);
+
             tooltip.selectAll("*").remove();
 
             tooltip.append("br")
@@ -286,6 +302,8 @@ export function render(el) {
                 .text(`Tag: ${data.name}`);             
 
             result.value.values.forEach(item => {
+                console.log(" > " + item[1]);
+                
                 var link = tooltip.append("a")
                     .attr("target", "_blank")
                     .attr("href", `obsidian://open?file=${item[0].path}`);
@@ -327,13 +345,13 @@ export function render(el) {
 
 export function hookMarkdownLinkMouseEventHandlers(
 	app: App,
-	//url: HTMLElement,
-    url: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
+	url: HTMLElement,
 	filePath: string,
     linkText: string
 ) {
+    const plugin = app.plugins.getPlugin("obsidian-tagvis") as ObsidianTagVis;
 
-    url.on("click", function (event: MouseEvent, d:any) {
+    url.on("click", function (event: MouseEvent) {
         event.preventDefault();
 			if (linkText) {
 				app.workspace.openLinkText(
@@ -344,7 +362,7 @@ export function hookMarkdownLinkMouseEventHandlers(
 			}
 		});
 
-    if (!m_settings.displayLinkPreview) {
+    if (!plugin.settings.displayLinkPreview) {
         return;
     }
     
@@ -355,7 +373,7 @@ export function hookMarkdownLinkMouseEventHandlers(
 					event,
 					source: "preview",
 					hoverParent: { hoverPopover: null},
-					targetEl: event.currentTarget,
+					targetEl: event.currentTarget as HTMLElement,
 					linktext: linkText,
 					sourcePath: filePath,
 				});

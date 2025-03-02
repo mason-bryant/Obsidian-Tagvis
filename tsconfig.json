@@ -23,7 +23,7 @@
 			"ES7"
 		],
 		"types": [],
-		"strictNullChecks": false,
+		"strictNullChecks": true,
 		"skipDefaultLibCheck": true,
 		"skipLibCheck": true,
 		"strict": false,

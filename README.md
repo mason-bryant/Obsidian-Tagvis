@@ -1,6 +1,6 @@
 # Obsidian Tag Vis
 
-<img width="400" src="./screenshot.png" />
+<img src="./screenshot.png" />
 
 This is a plugin for visualization the tags in your vault as a hierarchy.  
 
@@ -8,8 +8,7 @@ It is very much a work in progress (including this README) so please stay tuned 
 
 ## Configuration:
 
-
-
+Example:
 ~~~markdown
 ```tagvis
 {
@@ -25,6 +24,7 @@ It is very much a work in progress (including this README) so please stay tuned 
 }
 ```
 ~~~
+
 
 ### A single ring of files that are tagged with #work
 
@@ -44,3 +44,7 @@ It is very much a work in progress (including this README) so please stay tuned 
 
 ```
 ~~~
+
+
+## Required Plugins
+* Dataview!

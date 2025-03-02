@@ -28,7 +28,7 @@ jobs:
       - name: Prepare release artifacts
         run: |
           mkdir release
-          cp dist/main.js release/
+          cp main.js release/
           cp manifest.json release/
           cp LICENSE.txt release/
         shell: bash

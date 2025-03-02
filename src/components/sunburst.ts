@@ -98,7 +98,7 @@ export function render(el) {
         .size([2 * Math.PI, radius])
         (d3.hierarchy(data)
             .sum(d => d.value)
-            .sort((a, b) => b.value - a.value)) as ArcDatum;
+            .sort((a, b) => (b as any).value - (a as any).value)) as ArcDatum;
 
     const arc = d3.arc<ArcDatum>()
         .startAngle(d => d.x0)
@@ -127,7 +127,7 @@ export function render(el) {
     const paths = g.selectAll<SVGPathElement, ArcDatum>("path")
         .data(root.descendants().filter(d => d.depth) as ArcDatum[])
         .join("path")
-        .attr("fill", d => { while (d.depth > 1) d = d.parent; return color(d.data.name); })
+        .attr("fill", d => { while (d.depth > 1) (d as any) = d.parent; return color(d.data.name); })
         .attr("d", arc)
         .attr("pointer-events", "auto")
         .on("click", function (event: MouseEvent, d: ArcDatum) {
@@ -140,7 +140,7 @@ export function render(el) {
             mouseleftVisNode(event, d.data);  
         })
         .append("title")
-        .text(d => `${d.ancestors().map(d => d.data.name).reverse().join("/")}\n${format(d.value)}`);
+        .text(d => `${d.ancestors().map(d => d.data.name).reverse().join("/")}\n${format(d.value ?? 0)}`);
 
     g.selectAll("text")
         .data(root.descendants().filter(d => d.depth && (d.y0 + d.y1) / 2 * (d.x1 - d.x0) > 10))
@@ -345,11 +345,10 @@ export function render(el) {
 
 export function hookMarkdownLinkMouseEventHandlers(
 	app: App,
-	url: HTMLElement,
+	url: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
 	filePath: string,
     linkText: string
 ) {
-    const plugin = app.plugins.getPlugin("obsidian-tagvis") as ObsidianTagVis;
 
     url.on("click", function (event: MouseEvent) {
         event.preventDefault();
@@ -362,7 +361,7 @@ export function hookMarkdownLinkMouseEventHandlers(
 			}
 		});
 
-    if (!plugin.settings.displayLinkPreview) {
+    if (!m_settings.displayLinkPreview) {
         return;
     }
     

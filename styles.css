@@ -1,18 +1,8 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
-
 .block-language-d3 {
 	padding: 0.4em;
 	border: 2px solid grey;
 	border-radius: 5px;
 }
-
 
 .tagvis-tooltip {
 	background-color: black;
@@ -25,16 +15,10 @@ If your plugin does not need CSS, delete this file.
 
 .tagvis-tooltip-header {
 	font-weight: bold;
-	background-color:aliceblue !important
+	color:aliceblue !important
 }
 
 .tagvis-tooltip a {
     display: inline-block;
 	margin-bottom: 3px;
-}
-
-._popover.hover-popover {
-    top: 150px !important;
-    left: 300px !important;
-    transform: none !important;
 }

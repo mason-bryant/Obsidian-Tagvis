@@ -2,9 +2,10 @@
 
 <img src="./screenshot.png" />
 
-This is a plugin for visualization the tags in your vault as a hierarchy.  
+This is a plugin that visualizes the tags in your vault using a sunburst chart. It helps you explore the structure of your tags and their combinations, making it easy to understand how different tags relate to one another. 
 
 It is very much a work in progress (including this README) so please stay tuned for updates.
+
 
 ## Configuration:
 

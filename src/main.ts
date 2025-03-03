@@ -19,10 +19,8 @@ import { parseConfig } from "./components/config";
 
 // Remember to rename these classes and interfaces!
 
-
 export default class ObsidianTagVis extends Plugin {
 	public settings: ObsidianD3jsSettings;
-
 
 	async onload() {
 		await this.loadSettings();

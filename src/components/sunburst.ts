@@ -1,5 +1,5 @@
 import {
-	App,
+    App,
 } from "obsidian";
 
 import * as d3 from "d3";
@@ -31,7 +31,7 @@ class DataNode {
     }
 
     get truncatedName() {
-        return this.m_name.length > m_config.maxTagLength 
+        return this.m_name.length > m_config.maxTagLength
             ? this.m_name.substring(0, m_maxNodeLength) + "..." : this.m_name;
     }
 }
@@ -49,8 +49,8 @@ var tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
 var m_settings: ObsidianD3jsSettings;
 var m_app: App;
 
-export function init(app: App, 
-    el: HTMLElement, 
+export function init(app: App,
+    el: HTMLElement,
     settings: ObsidianD3jsSettings,
     config: StarburstConfig) {
 
@@ -67,10 +67,13 @@ export function init(app: App,
             .join(" AND ");
         ignoreFilesWithTags = " AND " + ignoreFilesWithTags;
     }
+    uniqueTags = [];
 
     d3.select(el).selectAll("*").remove();
     render(el);
 }
+
+var uniqueTags: string[];
 
 export function render(el) {
 
@@ -131,13 +134,13 @@ export function render(el) {
         .attr("d", arc)
         .attr("pointer-events", "auto")
         .on("click", function (event: MouseEvent, d: ArcDatum) {
-            onNodeClick(data, d.data.name); 
+            onNodeClick(data, d.data.name);
         })
         .on("mouseover", function (event: MouseEvent, d: ArcDatum) {
-            mouseoverVisNode(event, d.data);   
+            mouseoverVisNode(event, d.data);
         })
         .on("mouseout", function (event: MouseEvent, d: ArcDatum) {
-            mouseleftVisNode(event, d.data);  
+            mouseleftVisNode(event, d.data);
         })
         .append("title")
         .text(d => `${d.ancestors().map(d => d.data.name).reverse().join("/")}\n${format(d.value ?? 0)}`);
@@ -155,13 +158,13 @@ export function render(el) {
         .attr("font-size", m_config.fontsize)
         .attr("font-family", "sans-serif")
         .on("click", function (event, d: ArcDatum) {
-            onNodeClick(data, d.data.name); 
+            onNodeClick(data, d.data.name);
         })
         .on("mouseover", function (event, d: ArcDatum) {
-            mouseoverVisNode(event, d.data);            
+            mouseoverVisNode(event, d.data);
         })
         .on("mouseout", function (event, d: ArcDatum) {
-            mouseleftVisNode(event, d.data);  
+            mouseleftVisNode(event, d.data);
         })
         .text(d => d.data.truncatedName);
 
@@ -194,7 +197,8 @@ export function render(el) {
     }
 
     function start(initialTag: string) {
-
+        uniqueTags = [];
+        
         if (initialTag === null || initialTag === "") {
             executeQuery("", data, [], 0)
         } else {
@@ -215,7 +219,7 @@ export function render(el) {
             console.log("at depth")
             return;
         }
-        d3.select(el).selectAll("*").remove(); 
+        d3.select(el).selectAll("*").remove();
         render(el);
         await sleep(10);
 
@@ -235,7 +239,10 @@ export function render(el) {
                 child.value = item[1];
                 child.children = [];
 
-                data.children.push(child);
+                if (isNodeUnique(child)) {
+                    data.children.push(child);
+                }
+
 
                 var newTagHistory = tagHistory.slice();
                 newTagHistory.push(tag);
@@ -244,8 +251,8 @@ export function render(el) {
                 }
 
             });
-            d3.select(el).selectAll("*").remove(); 
-            render(el); 
+            d3.select(el).selectAll("*").remove();
+            render(el);
         });
     }
 
@@ -266,20 +273,25 @@ export function render(el) {
         }
 
         try {
-            const result = await dv.query(query);  
-            return result; 
+            const result = await dv.query(query);
+            return result;
         } catch (error) {
             console.error("Dataview Query Error:", error);
         }
     }
 
+
     async function populateTooltip(tooltip, data) {
         var tag = data.name;
         var requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
+
+        var requiredTagsString = requiredTags.map(tag =>
+            `${tag}`).join(", ");
+
         var fileQuery = getQuery(requiredTags,
             m_config.ignoreFilesWithTags,
             [], m_config.maxChildren, false);
-  
+
         try {
             const dv = (m_app as any).plugins.plugins["dataview"]?.api;
             if (!dv) {
@@ -287,23 +299,29 @@ export function render(el) {
                 return;
             }
 
-            const result = await dv.query(fileQuery); 
+            const result = await dv.query(fileQuery);
 
             if (!result.successful) {
                 console.log("query failed", fileQuery);
                 return;
             }
-            console.log("ran query", fileQuery);
+            //console.log("ran query ", fileQuery);
 
             tooltip.selectAll("*").remove();
 
-            tooltip.append("br")
+
+
+            var documentString = "document";
+            if (data.value != 1) {
+                documentString = "documents";
+            }
+            tooltip.append("span")
                 .attr("class", "tagvis-tooltip-header")
-                .text(`Tag: ${data.name}`);             
+                //.text(`Found ${data.value} ${documentString} containing: ${tags}`);             
+                .text(`${requiredTagsString}`);
+            tooltip.append("br")
 
             result.value.values.forEach(item => {
-                console.log(" > " + item[1]);
-                
                 var link = tooltip.append("a")
                     .attr("target", "_blank")
                     .attr("href", `obsidian://open?file=${item[0].path}`);
@@ -311,16 +329,16 @@ export function render(el) {
 
                 hookMarkdownLinkMouseEventHandlers(app, link, item[0].path, item[1]);
             });
-           return result;  
+            return result;
         } catch (error) {
             console.error("Dataview Query Error:", error);
         }
-        
+
     }
-    
+
     function mouseoverVisNode(event: MouseEvent, data: DataNode) {
         showTooltip(event, data);
-        
+
     }
 
     function mouseleftVisNode(event: MouseEvent, data: DataNode) {
@@ -330,11 +348,11 @@ export function render(el) {
         populateTooltip(tooltip, data);
 
         tooltip.style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY - 28) + "px")
-                .style("display", "block")
+            .style("top", (event.pageY - 28) + "px")
+            .style("display", "block")
 
         tooltip.on("mouseleave", function () {
-                hideTooltip();
+            hideTooltip();
         })
     }
 
@@ -344,39 +362,55 @@ export function render(el) {
 }
 
 export function hookMarkdownLinkMouseEventHandlers(
-	app: App,
-	url: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
-	filePath: string,
+    app: App,
+    url: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
+    filePath: string,
     linkText: string
 ) {
 
     url.on("click", function (event: MouseEvent) {
         event.preventDefault();
-			if (linkText) {
-				app.workspace.openLinkText(
-					linkText,
-					"",
-                    true
-				);
-			}
-		});
+        if (linkText) {
+            app.workspace.openLinkText(
+                linkText,
+                "",
+                true
+            );
+        }
+    });
 
     if (!m_settings.displayLinkPreview) {
         return;
     }
-    
-	url.on("mouseover", function (event: MouseEvent) {
-			event.preventDefault();
-			if (linkText) {
-				app.workspace.trigger("hover-link", {
-					event,
-					source: "preview",
-					hoverParent: { hoverPopover: null},
-					targetEl: event.currentTarget as HTMLElement,
-					linktext: linkText,
-					sourcePath: filePath,
-				});
-			}
-		});
+
+    url.on("mouseover", function (event: MouseEvent) {
+        event.preventDefault();
+        if (linkText) {
+            app.workspace.trigger("hover-link", {
+                event,
+                source: "preview",
+                hoverParent: { hoverPopover: null },
+                targetEl: event.currentTarget as HTMLElement,
+                linktext: linkText,
+                sourcePath: filePath,
+            });
+        }
+    });
+}
+
+function isNodeUnique(child: DataNode) {
+    var tagsInChild = child.tagHistory ?
+        [...child.tagHistory, child.name] : [...child.name];
+    tagsInChild.sort();
+    var tagsInChildSet = new Set(tagsInChild);
+    var tagsInChilString = [...tagsInChildSet].map(tag =>
+        `${tag}`).join(", ");
+
+    if (uniqueTags.contains(tagsInChilString)) {
+        return false;
+    } else {
+        uniqueTags.push(tagsInChilString);
+        return true;
+    }
 }
 

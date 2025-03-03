@@ -1,4 +1,5 @@
 import {
+	debounce,
 	App,
 	Editor,
 	MarkdownView,
@@ -17,10 +18,12 @@ import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "./components/settings";
 import * as sunburst from "./components/sunburst";
 import { parseConfig } from "./components/config";
 
-// Remember to rename these classes and interfaces!
+//console.log("Loaded main.js from:", import.meta.url);
 
 export default class ObsidianTagVis extends Plugin {
 	public settings: ObsidianD3jsSettings;
+
+	private debouncedRefresh: (text: string) => void = (text: string) => null;
 
 	async onload() {
 		await this.loadSettings();
@@ -28,19 +31,45 @@ export default class ObsidianTagVis extends Plugin {
 		this.registerMarkdownCodeBlockProcessor('tagvis', (source, el, ctx) => {
 			console.log("Starting with ", source);
 
-			var parsedConfig = parseConfig(source);
+			let parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
 					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;
 				} else {
 					sunburst.init(this.app, el, this.settings, parsedConfig);
 					console.log("end");
-
 				}
 			} else {
 				console.error("Element is null");
 			}
+
+			this.registerEvent(
+				this.app.workspace.on("active-leaf-change", () => {
+					console.log("active-leaf-change change");
+					//sunburst.init(this.app, el, this.settings, parsedConfig);
+				}
+			));
+
+			this.debouncedRefresh = debounce((text: string) => {
+				console.log("refresh views... : " + text);
+				sunburst.init(this.app, el, this.settings, parsedConfig);
+				true
+			}, 1000, true);
+
+			console.log("Foo");
+
+			this.debouncedRefresh("bla");
 		});
+
+
+		//active-leaf-change
+		// Mainly intended to detect when the user switches between live preview and source mode.
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => {
+				console.log("layout change");
+			}
+		));
+		
 
 		this.addSettingTab(new TagvisSettingsTab(this.app, this));
 	}

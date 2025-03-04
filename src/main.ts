@@ -13,10 +13,10 @@ import {
 import * as d3 from "d3";
 import _ from "lodash"
 
-import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "./components/settings";
+import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "components/settings";
 
-import * as sunburst from "./components/sunburst";
-import { parseConfig } from "./components/config";
+import * as sunburst from "components/sunburst";
+import { parseConfig } from "components/config";
 
 //console.log("Loaded main.js from:", import.meta.url);
 
@@ -28,9 +28,9 @@ export default class ObsidianTagVis extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.registerMarkdownCodeBlockProcessor('tagvis', (source, el, ctx) => {
-			console.log("Starting with ", source);
-
+		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
+			await sleep(1);
+			
 			let parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
@@ -43,33 +43,15 @@ export default class ObsidianTagVis extends Plugin {
 				console.error("Element is null");
 			}
 
-			this.registerEvent(
-				this.app.workspace.on("active-leaf-change", () => {
-					console.log("active-leaf-change change");
-					//sunburst.init(this.app, el, this.settings, parsedConfig);
-				}
-			));
-
 			this.debouncedRefresh = debounce((text: string) => {
+				//This is a bit of a hack to let dataview update it's indexes before we proceed.
 				console.log("refresh views... : " + text);
-				sunburst.init(this.app, el, this.settings, parsedConfig);
+				sunburst.startQuery();
 				true
 			}, 1000, true);
 
-			console.log("Foo");
-
-			this.debouncedRefresh("bla");
+			this.debouncedRefresh("hi ");
 		});
-
-
-		//active-leaf-change
-		// Mainly intended to detect when the user switches between live preview and source mode.
-		this.registerEvent(
-			this.app.workspace.on("layout-change", () => {
-				console.log("layout change");
-			}
-		));
-		
 
 		this.addSettingTab(new TagvisSettingsTab(this.app, this));
 	}

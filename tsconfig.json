@@ -1,8 +1,13 @@
 {
 	"compilerOptions": {
+		"baseUrl": "./src",
+		"paths": {
+			"components/*": [
+				"components/*"
+			]
+		},
 		"rootDir": "./src",
 		"outDir": "./dist",
-		"baseUrl": ".",
 		"sourceMap": true,
 		"inlineSources": true,
 		"module": "ESNext",

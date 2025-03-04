@@ -17,6 +17,9 @@ logs/
 *.log
 *.gz
 
+# General Cruft
+*\ copy*
+
 # Build files
 dist/
 build/

@@ -1,5 +1,5 @@
 import { expect, describe, it } from '@jest/globals';
-import { DataNode, updateChildren } from "./dataNode";
+import { DataNode, updateChildren } from "../components/dataNode";
 
 describe('updateChildren', () => {
 

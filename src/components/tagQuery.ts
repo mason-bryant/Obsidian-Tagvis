@@ -4,7 +4,7 @@ export function getQuery(
     ignoreFilesWithTags: string[],
     filterTags: string[],
     limit: number,
-    flattened: boolean = true
+    flattened = true
 ): string {
 
     let fromClause = "";
@@ -29,7 +29,7 @@ export function getQuery(
                 .join(" AND ");
         }
     
-        let query = `TABLE length(rows.file.link) AS "File Count"\n\
+        const query = `TABLE length(rows.file.link) AS "File Count"\n\
             ${fromClause}\n\
             ${mainWhereClause}\n\
             FLATTEN file.tags AS Tag \n\
@@ -39,7 +39,7 @@ export function getQuery(
         return query;
     
     } else {    
-        let query = `TABLE file.name, length(rows.file.link) AS "File Count"\n\
+        const query = `TABLE file.name, length(rows.file.link) AS "File Count"\n\
             ${fromClause}\n\
             ${mainWhereClause}\n\
             Limit ${limit}`

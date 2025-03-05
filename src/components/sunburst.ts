@@ -3,8 +3,7 @@ import {
 } from "obsidian";
 
 import * as d3 from "d3";
-import { Plugin } from "obsidian";
-import { StarburstConfig, parseConfig } from "./config";
+import { StarburstConfig } from "./config";
 import { getQuery } from './tagQuery';
 import { ObsidianD3jsSettings } from "./settings";
 import { DataNode, updateChildren } from "./dataNode";
@@ -13,16 +12,13 @@ let m_config: StarburstConfig;
 let m_firstRun = true;
 let m_rootData: DataNode;
 let m_ignoreFilesWithTagsCached = "";
-
-let m_tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>;
+let m_tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>;
 let m_settings: ObsidianD3jsSettings;
 let m_app: App;
-
 
 interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
-
 
 export function init(app: App,
     el: HTMLElement,
@@ -65,7 +61,7 @@ export function init(app: App,
         .attr("preserveAspectRatio", "xMidYMid meet")
         .style("background", "white");
     
-    const g = svg.append("g")
+    svg.append("g")
         .attr("id", "tagvis-root-g")
         .attr("transform", `translate(${m_config.layout.width / 2}, ${m_config.layout.height / 2})`)
         .attr("fill-opacity", 0.6);
@@ -93,11 +89,10 @@ export function render(_el) {
     const radius = Math.min(m_config.layout.width, m_config.layout.height) / 2 - 20;
 
     const partition = data => d3.partition()
-        .size([2 * Math.PI, radius])
-        (d3.hierarchy(data)
+        .size([2 * Math.PI, radius])(d3.hierarchy(data)
             .sum(d => d.value)
-            .sort((a, b) => (b as any).value - (a as any).value)) as ArcDatum;
-
+            .sort((a, b) => (b.value as number) - (a.value as number))) as ArcDatum;
+          
     const arc = d3.arc<ArcDatum>()
         .startAngle(d => d.x0)
         .endAngle(d => d.x1)
@@ -108,10 +103,11 @@ export function render(_el) {
 
     const root = partition(m_rootData);
 
-    const svg = d3.select("#tagvis-root-svg");
+    //const svg = d3.select("#tagvis-root-svg");
     const g = d3.select("#tagvis-root-g");        
 
-    const paths = g.selectAll<SVGPathElement, ArcDatum>("path")
+    //const paths = 
+    g.selectAll<SVGPathElement, ArcDatum>("path")
         .data(root.descendants().filter(d => d.depth) as ArcDatum[])
         .join("path")
         .attr("fill", d => { while (d.depth > 1) (d as any) = d.parent; return color(d.data.name); })
@@ -170,25 +166,17 @@ export function render(_el) {
         startQuery();
     }
 
-    function sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     function onNodeClick(data: DataNode, name: string) {
         console.log("nodeClick with tag " + name);
         startQuery(name)
     }
 
-    
-
     async function populateTooltip(tooltip, data) {
-        let tag = data.name;
-        let requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
-
-        let requiredTagsString = requiredTags.map(tag =>
+        const tag = data.name;
+        const requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
+        const requiredTagsString = requiredTags.map(tag =>
             `${tag}`).join(", ");
-
-        let fileQuery = getQuery(requiredTags,
+        const fileQuery = getQuery(requiredTags,
             m_config.ignoreFilesWithTags,
             [], m_config.maxChildren, false);
 
@@ -206,13 +194,6 @@ export function render(_el) {
                 return;
             }
             tooltip.selectAll("*").remove();
-
-
-
-            let documentString = "document";
-            if (data.value != 1) {
-                documentString = "documents";
-            }
             tooltip.append("span")
                 .attr("class", "tagvis-tooltip-header")
                 //.text(`Found ${data.value} ${documentString} containing: ${tags}`);             
@@ -220,7 +201,7 @@ export function render(_el) {
             tooltip.append("br")
 
             result.value.values.forEach(item => {
-                let link = tooltip.append("a")
+                const link = tooltip.append("a")
                     .attr("target", "_blank")
                     .attr("href", `obsidian://open?file=${item[0].path}`);
                 link.text(item[1]);
@@ -297,11 +278,11 @@ export function hookMarkdownLinkMouseEventHandlers(
 }
 
 function isNodeUnique(child: DataNode) {
-    let tagsInChild = child.tagHistory ?
+    const tagsInChild = child.tagHistory ?
         [...child.tagHistory, child.name] : [...child.name];
     tagsInChild.sort();
-    let tagsInChildSet = new Set(tagsInChild);
-    let tagsInChilString = [...tagsInChildSet].map(tag =>
+    const tagsInChildSet = new Set(tagsInChild);
+    const tagsInChilString = [...tagsInChildSet].map(tag =>
         `${tag}`).join(", ");
 
     if (uniqueTags.contains(tagsInChilString)) {
@@ -330,10 +311,9 @@ async function executeTagNodeQuery(
     data: DataNode,
     initialDepth: number) {
 
-    let newTagHistory = data.tagHistory.slice();
+    const newTagHistory = data.tagHistory.slice();
     newTagHistory.push(data.name);
-
-    let depth = newTagHistory.length + 1 - initialDepth;
+    const depth = newTagHistory.length + 1 - initialDepth;
 
     if (depth > m_config.maxDepth) {
         console.log("at depth")
@@ -350,17 +330,12 @@ async function executeTagNodeQuery(
             return;
         }
 
-        let queryResults: DataNode[] = [];
+        const queryResults: DataNode[] = [];
 
         result.value.values.forEach(item => {
-            let tag = item[0];
-
-            let child = new DataNode();
-            child.name = tag;
-            child.tagHistory = newTagHistory;
-            child.value = item[1];
-            child.children = [];
-
+            const tag = item[0];
+            const child = new DataNode(tag, item[1], [], newTagHistory);
+ 
             if (isNodeUnique(child)) {
                 queryResults.push(child);
             }
@@ -388,7 +363,6 @@ async function executeTagNodeQuery(
                 executeTagNodeQuery(src, initialDepth);
             }
         }
-
         updateChildren(data.children, queryResults, newNodeFn, updateFn);
 
         //d3.select(el).selectAll("*").remove();
@@ -397,11 +371,10 @@ async function executeTagNodeQuery(
 }
 
 async function runQuery(tag, tagHistory) {
-    let requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
-
+    const requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
     const tagsToExclude = [...tagHistory, ...m_config.filterTags];
 
-    let query = getQuery(requiredTags,
+    const query = getQuery(requiredTags,
         m_config.ignoreFilesWithTags,
         tagsToExclude, m_config.maxChildren);
 

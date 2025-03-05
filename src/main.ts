@@ -1,24 +1,14 @@
 import {
 	debounce,
 	App,
-	Editor,
-	MarkdownView,
-	Modal,
-	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
 } from "obsidian";
 
-import * as d3 from "d3";
-import _ from "lodash"
-
 import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "components/settings";
-
 import * as sunburst from "components/sunburst";
 import { parseConfig } from "components/config";
-
-//console.log("Loaded main.js from:", import.meta.url);
 
 export default class ObsidianTagVis extends Plugin {
 	public settings: ObsidianD3jsSettings;
@@ -31,7 +21,7 @@ export default class ObsidianTagVis extends Plugin {
 		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
 			await sleep(1);
 			
-			let parsedConfig = parseConfig(source);
+			const parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
 					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;

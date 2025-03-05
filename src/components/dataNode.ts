@@ -6,6 +6,8 @@ export class DataNode {
     children: DataNode[];
     tagHistory: string[];
 
+    id?: string;
+
     constructor(
         _name?: string,
         _value?: number,
@@ -43,7 +45,6 @@ export class DataNode {
         this.m_name = name;
     }
 
-    //getTruncatedName(m_config.maxTagLength)
     getTruncatedName(maxTagLength: number) {
         return this.name.length > maxTagLength
             ? this.name.substring(0, maxTagLength) + "..." : this.name;
@@ -77,9 +78,9 @@ export function updateChildren(
     data.forEach(matchedSourceDataNode => {
         const matchedResultsNode = results.find(r => compareFn(r, matchedSourceDataNode));
         if (matchedResultsNode) {
-            matchedSourceDataNode.children = matchedResultsNode.children;
             matchedSourceDataNode.tagHistory = matchedResultsNode.tagHistory;
             matchedSourceDataNode.value = matchedResultsNode.value;
+
             if (!matchedSourceDataNode.tagHistory) {
                 matchedSourceDataNode.tagHistory = [];
             }

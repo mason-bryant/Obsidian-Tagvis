@@ -7,26 +7,30 @@ import {
 } from "obsidian";
 
 import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "components/settings";
-import * as sunburst from "components/sunburst";
+import { Sunburst } from "components/sunburst";
 import { parseConfig } from "components/config";
+
 
 export default class ObsidianTagVis extends Plugin {
 	public settings: ObsidianD3jsSettings;
-
 	private debouncedRefresh: (text: string) => void = (text: string) => null;
 
 	async onload() {
 		await this.loadSettings();
 
+		console.log(`onload`);
+
 		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
 			await sleep(1);
-			
+			const blockId = `block-${ctx.sourcePath}-${ctx.getSectionInfo(el)?.lineStart}`;
+			const sunburst = new Sunburst();
+
 			const parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
 					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;
 				} else {
-					sunburst.init(this.app, el, this.settings, parsedConfig);
+					sunburst.init(this.app, el, this.settings, parsedConfig, blockId);
 					console.log("end");
 				}
 			} else {
@@ -35,7 +39,6 @@ export default class ObsidianTagVis extends Plugin {
 
 			this.debouncedRefresh = debounce((text: string) => {
 				//This is a bit of a hack to let dataview update it's indexes before we proceed.
-				console.log("refresh views... : " + text);
 				sunburst.startQuery();
 				true
 			}, 1000, true);
@@ -45,7 +48,10 @@ export default class ObsidianTagVis extends Plugin {
 
 		this.addSettingTab(new TagvisSettingsTab(this.app, this));
 	}
-	onunload() { }
+
+	async onunload() {
+		console.log(`onunload`);
+	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

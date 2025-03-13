@@ -8,6 +8,8 @@ export interface StarburstConfig {
     fontsize: number;
     fontFamily: string;
     maxTagLength: number;
+    background: string;
+    color: string;
     layout: {
         width: number;
         height: number;
@@ -31,6 +33,8 @@ const defaultValues  = {
     "fontsize": 12,
     "fontFamily": "sans-serif",
     "maxTagLength": 10,
+    "background" : "white",
+    "color" : "interpolateRainbow",
     "layout": {
         "width": 800,
         "height": 600,
@@ -55,6 +59,8 @@ export function parseConfig(jsonString: string): StarburstConfig {
             fontsize: parsedConfig.fontsize || defaultValues.fontsize,
             fontFamily: parsedConfig.fontFamily || defaultValues.fontFamily,
             maxTagLength: parsedConfig.maxTagLength || defaultValues.maxTagLength,
+            background: parsedConfig.background || defaultValues.background,
+            color: parsedConfig.color || defaultValues.color,
             layout: {
                 width: parsedConfig.layout?.width || defaultValues.layout.width,
                 height: parsedConfig.layout?.height || defaultValues.layout.height,

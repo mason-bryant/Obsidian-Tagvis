@@ -18,7 +18,10 @@ export default class ObsidianTagVis extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		console.log(`onload`);
+		if(this.settings.debugMessages) {
+			console.log(`onload`);
+		}
+
 
 		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
 			await sleep(1);
@@ -28,10 +31,12 @@ export default class ObsidianTagVis extends Plugin {
 			const parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
-					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;
+					el.innerText = `Tagviz Error: Unable to parse JSON: ${parsedConfig.jsonError}`;
 				} else {
 					sunburst.init(this.app, el, this.settings, parsedConfig, blockId);
-					console.log("end");
+					if(this.settings.debugMessages) {
+						console.log("end");
+					}
 				}
 			} else {
 				console.error("Element is null");
@@ -40,8 +45,8 @@ export default class ObsidianTagVis extends Plugin {
 			this.debouncedRefresh = debounce((text: string) => {
 				//This is a bit of a hack to let dataview update it's indexes before we proceed.
 				sunburst.startQuery();
-				true
-			}, 1000, true);
+				return true;
+			}, 1500, true);
 
 			this.debouncedRefresh("hi ");
 		});
@@ -50,7 +55,6 @@ export default class ObsidianTagVis extends Plugin {
 	}
 
 	async onunload() {
-		console.log(`onunload`);
 	}
 
 	async loadSettings() {
@@ -77,13 +81,23 @@ class TagvisSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Display Link Preview')
+			.setName('Display link preview')
 			.setDesc("Turn this on to display a preview of the tagged link when it's hovered over.\
 				It can sometimes get in the way of the links.")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.displayLinkPreview)
 				.onChange(async (value) => {
 					this.plugin.settings.displayLinkPreview = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Display debug messages')
+			.setDesc("Turn on of you want debug messages in the logs.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.debugMessages)
+				.onChange(async (value) => {
+					this.plugin.settings.debugMessages = value;
 					await this.plugin.saveSettings();
 				}));
 	}

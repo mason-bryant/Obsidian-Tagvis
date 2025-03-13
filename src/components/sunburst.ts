@@ -32,7 +32,7 @@ export class Sunburst {
 
     //prevents re-running previous tag queries
     private uniqueTags: string[];
-    
+
     init(app: App,
         _el: HTMLElement,
         settings: ObsidianD3jsSettings,
@@ -46,6 +46,12 @@ export class Sunburst {
         this.m_rootData = new DataNode();
         this.m_id = id;
         this.m_rootData.id = this.m_id;
+
+        const dv = (app as any).plugins.plugins["dataview"]?.api;
+        if (!dv) {
+            _el.innerText = `Tagviz Error: Dataview plugin is not enabled.`;
+            return;
+        }
 
         if (this.m_config.ignoreFilesWithTags.length > 0) {
             this.m_ignoreFilesWithTagsCached = this.m_config.ignoreFilesWithTags.map(tag =>
@@ -62,7 +68,9 @@ export class Sunburst {
 
         if ((this.m_config.layout.width > _el.clientWidth) && (_el.clientWidth > 0)) {
             this.m_config.layout.width = _el.clientWidth;
-            console.log("Configured width is too large. Width adjusted to", this.m_config.layout.width);
+            if(this.m_settings.debugMessages) {
+                console.log("Configured width is too large. Width adjusted to", this.m_config.layout.width);
+            }
         }
 
         d3.select(_el).selectAll("*").remove();
@@ -73,7 +81,7 @@ export class Sunburst {
             .attr("height", this.m_config.layout.height)
             .attr("viewBox", `0 0 ${this.m_config.layout.width} ${this.m_config.layout.height}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
-            .style("background", "white");
+            .style("background", this.m_config.background);
 
         this.m_g = this.m_svg.append("g")
             .attr("id", "tagvis-root-g")
@@ -83,10 +91,39 @@ export class Sunburst {
         this.render();
     }
 
+    getColorFunction() {
+
+        switch (this.m_config.color) {
+
+            case "interpolateCividis":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCividis, this.m_rootData.children.length + 1));
+                break;
+            case "interpolateCubehelixDefault":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCubehelixDefault,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "interpolateCool":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCool,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "interpolateBuPu":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateBuPu,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "test":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolatePlasma,
+                    this.m_rootData.children.length + 1));
+                break;
+
+        }
+
+        return d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, this.m_rootData.children.length + 1));
+    }
+
     render() {
         const format = d3.format(",d");
 
-        const color = d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, this.m_rootData.children.length + 1));
+        const color = this.getColorFunction();
         const radius = Math.min(this.m_config.layout.width, this.m_config.layout.height) / 2 - 20;
 
         const partition = data => d3.partition()
@@ -209,7 +246,9 @@ export class Sunburst {
             const result = await dv.query(fileQuery);
 
             if (!result.successful) {
-                console.log("query failed", fileQuery);
+                if(this.m_settings.debugMessages) {
+                    console.log("query failed", fileQuery);
+                }
                 return;
             }
             tooltip.selectAll("*").remove();
@@ -238,7 +277,9 @@ export class Sunburst {
 
 
     onNodeClick(data: DataNode, name: string) {
-        console.log("nodeClick with tag " + name);
+        if(this.m_settings.debugMessages) {
+            console.log("nodeClick with tag " + name);
+        }
         this.startQuery(name)
     }
 
@@ -317,7 +358,6 @@ export class Sunburst {
         const depth = newTagHistory.length + 1 - initialDepth;
 
         if (depth > this.m_config.maxDepth) {
-            console.log("at depth")
             return;
         }
 
@@ -325,7 +365,9 @@ export class Sunburst {
 
         await this.runQuery(data.name, newTagHistory).then(result => {
             if (!result.successful) {
-                console.log("query failed");
+                if(this.m_settings.debugMessages) {
+                    console.log("query failed");
+                }
                 return;
             }
 
@@ -370,7 +412,9 @@ export class Sunburst {
             tagsToExclude, this.m_config.maxChildren);
 
         if (this.m_logNodeQuery) {
-            console.log(`Running node query id: ${this.m_rootData.id}`, query);
+            if(this.m_settings.debugMessages) {
+                console.log(`Running node query id: ${this.m_rootData.id}`, query);
+            }
         }
 
         //TODO: Don't like the cast to any here

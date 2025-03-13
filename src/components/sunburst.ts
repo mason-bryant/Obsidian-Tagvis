@@ -32,7 +32,7 @@ export class Sunburst {
 
     //prevents re-running previous tag queries
     private uniqueTags: string[];
-    
+
     init(app: App,
         _el: HTMLElement,
         settings: ObsidianD3jsSettings,
@@ -73,7 +73,7 @@ export class Sunburst {
             .attr("height", this.m_config.layout.height)
             .attr("viewBox", `0 0 ${this.m_config.layout.width} ${this.m_config.layout.height}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
-            .style("background", "white");
+            .style("background", this.m_config.background);
 
         this.m_g = this.m_svg.append("g")
             .attr("id", "tagvis-root-g")
@@ -83,10 +83,39 @@ export class Sunburst {
         this.render();
     }
 
+    getColorFunction() {
+
+        switch (this.m_config.color) {
+
+            case "interpolateCividis":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCividis, this.m_rootData.children.length + 1));
+                break;
+            case "interpolateCubehelixDefault":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCubehelixDefault,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "interpolateCool":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateCool,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "interpolateBuPu":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolateBuPu,
+                    this.m_rootData.children.length + 1));
+                break;
+            case "test":
+                return d3.scaleOrdinal(d3.quantize(d3.interpolatePlasma,
+                    this.m_rootData.children.length + 1));
+                break;
+
+        }
+
+        return d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, this.m_rootData.children.length + 1));
+    }
+
     render() {
         const format = d3.format(",d");
 
-        const color = d3.scaleOrdinal(d3.quantize(d3.interpolateRainbow, this.m_rootData.children.length + 1));
+        const color = this.getColorFunction();
         const radius = Math.min(this.m_config.layout.width, this.m_config.layout.height) / 2 - 20;
 
         const partition = data => d3.partition()

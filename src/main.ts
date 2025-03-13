@@ -40,8 +40,8 @@ export default class ObsidianTagVis extends Plugin {
 			this.debouncedRefresh = debounce((text: string) => {
 				//This is a bit of a hack to let dataview update it's indexes before we proceed.
 				sunburst.startQuery();
-				true
-			}, 1000, true);
+				return true;
+			}, 1500, true);
 
 			this.debouncedRefresh("hi ");
 		});

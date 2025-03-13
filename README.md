@@ -1,4 +1,4 @@
-# Obsidian Tag Vis
+# Tag Vis
 
 <img src="./screenshot.png" />
 

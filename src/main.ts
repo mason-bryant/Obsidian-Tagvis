@@ -22,6 +22,7 @@ export default class ObsidianTagVis extends Plugin {
 			console.log(`onload`);
 		}
 
+
 		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
 			await sleep(1);
 			const blockId = `block-${ctx.sourcePath}-${ctx.getSectionInfo(el)?.lineStart}`;
@@ -30,7 +31,7 @@ export default class ObsidianTagVis extends Plugin {
 			const parsedConfig = parseConfig(source);
 			if (el) {
 				if (parsedConfig.jsonError) {
-					el.innerText = `Error parsing JSON: ${parsedConfig.jsonError}`;
+					el.innerText = `Tagviz Error: Unable to parse JSON: ${parsedConfig.jsonError}`;
 				} else {
 					sunburst.init(this.app, el, this.settings, parsedConfig, blockId);
 					if(this.settings.debugMessages) {

@@ -47,6 +47,12 @@ export class Sunburst {
         this.m_id = id;
         this.m_rootData.id = this.m_id;
 
+        const dv = (app as any).plugins.plugins["dataview"]?.api;
+        if (!dv) {
+            _el.innerText = `Tagviz Error: Dataview plugin is not enabled.`;
+            return;
+        }
+
         if (this.m_config.ignoreFilesWithTags.length > 0) {
             this.m_ignoreFilesWithTagsCached = this.m_config.ignoreFilesWithTags.map(tag =>
                 `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)

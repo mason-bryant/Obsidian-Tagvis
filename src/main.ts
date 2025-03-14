@@ -6,13 +6,14 @@ import {
 	Setting,
 } from "obsidian";
 
-import { ObsidianD3jsSettings, DEFAULT_SETTINGS } from "components/settings";
+import { TagvisPluginSettings, DEFAULT_SETTINGS } from "components/settings";
 import { Sunburst } from "components/sunburst";
 import { parseConfig } from "components/config";
 
 
 export default class ObsidianTagVis extends Plugin {
-	public settings: ObsidianD3jsSettings;
+
+	public settings: TagvisPluginSettings;
 	private debouncedRefresh: (text: string) => void = (text: string) => null;
 
 	async onload() {

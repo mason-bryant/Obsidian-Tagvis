@@ -1,9 +1,9 @@
-export interface ObsidianD3jsSettings {
+export interface TagvisPluginSettings {
     displayLinkPreview: boolean;
     debugMessages: boolean;
 }
 
-export const DEFAULT_SETTINGS: ObsidianD3jsSettings = {
+export const DEFAULT_SETTINGS: TagvisPluginSettings = {
     displayLinkPreview: true,
     debugMessages: false,
 };

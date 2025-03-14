@@ -7,6 +7,10 @@ export function getQuery(
     flattened = true
 ): string {
 
+    //const requiredTagsHasNonRootTag = requiredTags.some(item => item !== "#");
+
+    requiredTags = requiredTags.filter(item => item !== "#");
+
     let fromClause = "";
     if (requiredTags.length > 0) {
         fromClause = "FROM " + requiredTags.map(tag =>
@@ -28,7 +32,7 @@ export function getQuery(
                 `Tag != "${tag}"`)
                 .join(" AND ");
         }
-    
+
         const query = `TABLE length(rows.file.link) AS "File Count"\n\
             ${fromClause}\n\
             ${mainWhereClause}\n\

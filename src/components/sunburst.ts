@@ -5,25 +5,21 @@ import {
 import * as d3 from "d3";
 import { StarburstConfig } from "./config";
 import { getQuery } from './tagQuery';
-import { ObsidianD3jsSettings } from "./settings";
+import { TagvisPluginSettings } from "./settings";
 import { DataNode, updateChildren } from "./dataNode";
-
-
+import * as logger from 'loglevel';
 
 interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
 
 export class Sunburst {
-    private m_logNodeQuery = false;
-    //-------- 
-
     private m_id: string;
-    private m_config: StarburstConfig;
+    private m_visualizationDefinition: StarburstConfig;
     private m_firstRun = true;
     private m_rootData: DataNode;
     private m_ignoreFilesWithTagsCached = "";
-    private m_settings: ObsidianD3jsSettings;
+    private m_pluginSettings: TagvisPluginSettings;
     private m_app: App;
 
     private m_tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>;
@@ -35,14 +31,14 @@ export class Sunburst {
 
     init(app: App,
         _el: HTMLElement,
-        settings: ObsidianD3jsSettings,
-        config: StarburstConfig,
+        pluginSettings: TagvisPluginSettings,
+        isualizationDefinition: StarburstConfig,
         id: string) {
 
         this.m_firstRun = true;
-        this.m_config = config;
+        this.m_visualizationDefinition = isualizationDefinition;
         this.m_app = app;
-        this.m_settings = settings;
+        this.m_pluginSettings = pluginSettings;
         this.m_rootData = new DataNode();
         this.m_id = id;
         this.m_rootData.id = this.m_id;
@@ -53,8 +49,8 @@ export class Sunburst {
             return;
         }
 
-        if (this.m_config.ignoreFilesWithTags.length > 0) {
-            this.m_ignoreFilesWithTagsCached = this.m_config.ignoreFilesWithTags.map(tag =>
+        if (this.m_visualizationDefinition.ignoreFilesWithTags.length > 0) {
+            this.m_ignoreFilesWithTagsCached = this.m_visualizationDefinition.ignoreFilesWithTags.map(tag =>
                 `contains(file.tags, "${tag}") = false AND contains(file.etags, "${tag}") = false`)
                 .join(" AND ");
             this.m_ignoreFilesWithTagsCached = " AND " + this.m_ignoreFilesWithTagsCached;
@@ -62,30 +58,28 @@ export class Sunburst {
         this.uniqueTags = [];
 
         if (!_el) {
-            console.error("Invalid DOM element");
+            logger.error("Invalid DOM element");
             return;
         }
 
-        if ((this.m_config.layout.width > _el.clientWidth) && (_el.clientWidth > 0)) {
-            this.m_config.layout.width = _el.clientWidth;
-            if(this.m_settings.debugMessages) {
-                console.log("Configured width is too large. Width adjusted to", this.m_config.layout.width);
-            }
+        if ((this.m_visualizationDefinition.layout.width > _el.clientWidth) && (_el.clientWidth > 0)) {
+            this.m_visualizationDefinition.layout.width = _el.clientWidth;
+            logger.debug("Configured width is too large. Width adjusted to", this.m_visualizationDefinition.layout.width);
         }
 
         d3.select(_el).selectAll("*").remove();
         this.m_svg = d3.select(_el).append("span")
             .append("svg")
             .attr("id", "tagvis-root-svg")
-            .attr("width", this.m_config.layout.width)
-            .attr("height", this.m_config.layout.height)
-            .attr("viewBox", `0 0 ${this.m_config.layout.width} ${this.m_config.layout.height}`)
+            .attr("width", this.m_visualizationDefinition.layout.width)
+            .attr("height", this.m_visualizationDefinition.layout.height)
+            .attr("viewBox", `0 0 ${this.m_visualizationDefinition.layout.width} ${this.m_visualizationDefinition.layout.height}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
-            .style("background", this.m_config.background);
+            .style("background", this.m_visualizationDefinition.background);
 
         this.m_g = this.m_svg.append("g")
             .attr("id", "tagvis-root-g")
-            .attr("transform", `translate(${this.m_config.layout.width / 2}, ${this.m_config.layout.height / 2})`)
+            .attr("transform", `translate(${this.m_visualizationDefinition.layout.width / 2}, ${this.m_visualizationDefinition.layout.height / 2})`)
             .attr("fill-opacity", 0.6);
 
         this.render();
@@ -93,7 +87,7 @@ export class Sunburst {
 
     getColorFunction() {
 
-        switch (this.m_config.color) {
+        switch (this.m_visualizationDefinition.color) {
 
             case "interpolateCividis":
                 return d3.scaleOrdinal(d3.quantize(d3.interpolateCividis, this.m_rootData.children.length + 1));
@@ -124,7 +118,7 @@ export class Sunburst {
         const format = d3.format(",d");
 
         const color = this.getColorFunction();
-        const radius = Math.min(this.m_config.layout.width, this.m_config.layout.height) / 2 - 20;
+        const radius = Math.min(this.m_visualizationDefinition.layout.width, this.m_visualizationDefinition.layout.height) / 2 - 20;
 
         const partition = data => d3.partition()
             .size([2 * Math.PI, radius])(d3.hierarchy(data)
@@ -168,7 +162,7 @@ export class Sunburst {
             })
             .attr("dy", "0.35em")
             .attr("text-anchor", "middle")
-            .attr("font-size", this.m_config.fontsize)
+            .attr("font-size", this.m_visualizationDefinition.fontsize)
             .attr("font-family", "sans-serif")
             .on("click", ((event, d: ArcDatum) => {
                 this.onNodeClick(this.m_rootData, d.data.name);
@@ -179,7 +173,7 @@ export class Sunburst {
             .on("mouseout", ((event, d: ArcDatum) => {
                 this.mouseleftVisNode(event, d.data);
             }))
-            .text(d => d.data.getTruncatedName(this.m_config.maxTagLength));
+            .text(d => d.data.getTruncatedName(this.m_visualizationDefinition.maxTagLength));
 
         this.m_g.append("circle")
             .attr("r", radius / 5)
@@ -190,7 +184,7 @@ export class Sunburst {
         this.m_g.append("text")
             .attr("text-anchor", "middle")
             .attr("dy", "0.35em")
-            .attr("font-size", this.m_config.fontsize)
+            .attr("font-size", this.m_visualizationDefinition.fontsize)
             .attr("font-family", "sans-serif")
             .text(root.data.name);
 
@@ -233,22 +227,20 @@ export class Sunburst {
         const requiredTagsString = requiredTags.map(tag =>
             `${tag}`).join(", ");
         const fileQuery = getQuery(requiredTags,
-            this.m_config.ignoreFilesWithTags,
-            [], this.m_config.maxChildren, false);
+            this.m_visualizationDefinition.ignoreFilesWithTags,
+            [], this.m_visualizationDefinition.maxChildren, false);
 
         try {
             const dv = (this.m_app as any).plugins.plugins["dataview"]?.api;
             if (!dv) {
-                console.error("Dataview plugin is not enabled.");
+                logger.error("Dataview plugin is not enabled.");
                 return;
             }
 
             const result = await dv.query(fileQuery);
 
             if (!result.successful) {
-                if(this.m_settings.debugMessages) {
-                    console.log("query failed", fileQuery);
-                }
+                logger.error("query failed", fileQuery);
                 return;
             }
             tooltip.selectAll("*").remove();
@@ -267,7 +259,7 @@ export class Sunburst {
             });
             return result;
         } catch (error) {
-            console.error("Dataview Query Error:", error);
+            logger.error("Dataview Query Error:", error);
         }
     }
 
@@ -277,9 +269,7 @@ export class Sunburst {
 
 
     onNodeClick(data: DataNode, name: string) {
-        if(this.m_settings.debugMessages) {
-            console.log("nodeClick with tag " + name);
-        }
+        logger.debug("nodeClick with tag " + name);
         this.startQuery(name)
     }
 
@@ -301,7 +291,7 @@ export class Sunburst {
             }
         });
 
-        if (!this.m_settings.displayLinkPreview) {
+        if (!this.m_pluginSettings.displayLinkPreview) {
             return;
         }
 
@@ -338,7 +328,7 @@ export class Sunburst {
 
     startQuery(initialTag?: string) {
         if (!initialTag) {
-            initialTag = this.m_config.initialTag
+            initialTag = this.m_visualizationDefinition.initialTag
         }
         this.uniqueTags = [];
 
@@ -357,7 +347,8 @@ export class Sunburst {
         newTagHistory.push(data.name);
         const depth = newTagHistory.length + 1 - initialDepth;
 
-        if (depth > this.m_config.maxDepth) {
+        if (depth > this.m_visualizationDefinition.maxDepth) {
+            logger.debug("Queries complete: at depth");
             return;
         }
 
@@ -365,9 +356,7 @@ export class Sunburst {
 
         await this.runQuery(data.name, newTagHistory).then(result => {
             if (!result.successful) {
-                if(this.m_settings.debugMessages) {
-                    console.log("query failed");
-                }
+                logger.debug("query failed");
                 return;
             }
 
@@ -383,7 +372,7 @@ export class Sunburst {
             });
 
             const updateFn = ((src: DataNode, dest: DataNode) => {
-                if (depth < this.m_config.maxDepth) {
+                if (depth < this.m_visualizationDefinition.maxDepth) {
                     this.executeTagNodeQuery(dest, initialDepth);
                 }
             });
@@ -392,7 +381,7 @@ export class Sunburst {
                 if (!src.tagHistory) {
                     src.tagHistory = [];
                 }
-                if (depth < this.m_config.maxDepth) {
+                if (depth < this.m_visualizationDefinition.maxDepth) {
                     this.executeTagNodeQuery(src, initialDepth);
                 }
             });
@@ -405,22 +394,18 @@ export class Sunburst {
 
     async runQuery(tag, tagHistory) {
         const requiredTags = tag ? [...tagHistory, tag] : [...tagHistory];
-        const tagsToExclude = [...tagHistory, ...this.m_config.filterTags];
+        const tagsToExclude = [...tagHistory, ...this.m_visualizationDefinition.filterTags];
 
         const query = getQuery(requiredTags,
-            this.m_config.ignoreFilesWithTags,
-            tagsToExclude, this.m_config.maxChildren);
+            this.m_visualizationDefinition.ignoreFilesWithTags,
+            tagsToExclude, this.m_visualizationDefinition.maxChildren);
 
-        if (this.m_logNodeQuery) {
-            if(this.m_settings.debugMessages) {
-                console.log(`Running node query id: ${this.m_rootData.id}`, query);
-            }
-        }
+        logger.debug(`Running node query id: ${this.m_rootData.id} \n`, query);
 
         //TODO: Don't like the cast to any here
         const dv = (this.m_app as any).plugins.plugins["dataview"]?.api;
         if (!dv) {
-            console.error("Dataview plugin is not enabled.");
+            logger.error("Dataview plugin is not enabled.");
             return;
         }
 
@@ -428,7 +413,7 @@ export class Sunburst {
             const result = await dv.query(query);
             return result;
         } catch (error) {
-            console.error("Dataview Query Error:", error);
+            logger.error("Dataview Query Error:", error);
         }
     }
 }

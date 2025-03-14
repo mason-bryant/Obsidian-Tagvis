@@ -9,6 +9,7 @@ import {
 import { TagvisPluginSettings, DEFAULT_SETTINGS } from "components/settings";
 import { Sunburst } from "components/sunburst";
 import { parseConfig } from "components/config";
+import * as logger from 'loglevel';
 
 
 export default class ObsidianTagVis extends Plugin {
@@ -18,11 +19,7 @@ export default class ObsidianTagVis extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-
-		if(this.settings.debugMessages) {
-			console.log(`onload`);
-		}
-
+		logger.debug("onload");
 
 		this.registerMarkdownCodeBlockProcessor('tagvis', async (source, el, ctx) => {
 			await sleep(1);
@@ -36,11 +33,11 @@ export default class ObsidianTagVis extends Plugin {
 				} else {
 					sunburst.init(this.app, el, this.settings, parsedConfig, blockId);
 					if(this.settings.debugMessages) {
-						console.log("end");
+						logger.log("end");
 					}
 				}
 			} else {
-				console.error("Element is null");
+				logger.error("Element is null");
 			}
 
 			this.debouncedRefresh = debounce((text: string) => {
@@ -60,12 +57,23 @@ export default class ObsidianTagVis extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+		if(this.settings.debugMessages) {
+            logger.setLevel("DEBUG");
+        } else {
+            logger.setLevel("INFO");
+        }
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
 
+		if(this.settings.debugMessages) {
+            logger.setLevel("DEBUG");
+        } else {
+            logger.setLevel("INFO");
+        }
+	}
 }
 
 class TagvisSettingsTab extends PluginSettingTab {

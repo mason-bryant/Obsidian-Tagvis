@@ -7,17 +7,13 @@ import { StarburstConfig } from "./config";
 import { getQuery } from './tagQuery';
 import { TagvisPluginSettings } from "./settings";
 import { DataNode, updateChildren } from "./dataNode";
-
-
+import * as logger from 'loglevel';
 
 interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
 
 export class Sunburst {
-    private m_logNodeQuery = false;
-    //-------- 
-
     private m_id: string;
     private m_visualizationDefinition: StarburstConfig;
     private m_firstRun = true;
@@ -35,14 +31,14 @@ export class Sunburst {
 
     init(app: App,
         _el: HTMLElement,
-        settings: TagvisPluginSettings,
-        config: StarburstConfig,
+        pluginSettings: TagvisPluginSettings,
+        isualizationDefinition: StarburstConfig,
         id: string) {
 
         this.m_firstRun = true;
-        this.m_visualizationDefinition = config;
+        this.m_visualizationDefinition = isualizationDefinition;
         this.m_app = app;
-        this.m_pluginSettings = settings;
+        this.m_pluginSettings = pluginSettings;
         this.m_rootData = new DataNode();
         this.m_id = id;
         this.m_rootData.id = this.m_id;
@@ -62,15 +58,13 @@ export class Sunburst {
         this.uniqueTags = [];
 
         if (!_el) {
-            console.error("Invalid DOM element");
+            logger.error("Invalid DOM element");
             return;
         }
 
         if ((this.m_visualizationDefinition.layout.width > _el.clientWidth) && (_el.clientWidth > 0)) {
             this.m_visualizationDefinition.layout.width = _el.clientWidth;
-            if(this.m_pluginSettings.debugMessages) {
-                console.log("Configured width is too large. Width adjusted to", this.m_visualizationDefinition.layout.width);
-            }
+            logger.debug("Configured width is too large. Width adjusted to", this.m_visualizationDefinition.layout.width);
         }
 
         d3.select(_el).selectAll("*").remove();
@@ -239,16 +233,14 @@ export class Sunburst {
         try {
             const dv = (this.m_app as any).plugins.plugins["dataview"]?.api;
             if (!dv) {
-                console.error("Dataview plugin is not enabled.");
+                logger.error("Dataview plugin is not enabled.");
                 return;
             }
 
             const result = await dv.query(fileQuery);
 
             if (!result.successful) {
-                if(this.m_pluginSettings.debugMessages) {
-                    console.log("query failed", fileQuery);
-                }
+                logger.error("query failed", fileQuery);
                 return;
             }
             tooltip.selectAll("*").remove();
@@ -267,7 +259,7 @@ export class Sunburst {
             });
             return result;
         } catch (error) {
-            console.error("Dataview Query Error:", error);
+            logger.error("Dataview Query Error:", error);
         }
     }
 
@@ -277,9 +269,7 @@ export class Sunburst {
 
 
     onNodeClick(data: DataNode, name: string) {
-        if(this.m_pluginSettings.debugMessages) {
-            console.log("nodeClick with tag " + name);
-        }
+        logger.debug("nodeClick with tag " + name);
         this.startQuery(name)
     }
 
@@ -356,11 +346,9 @@ export class Sunburst {
         const newTagHistory = data.tagHistory.slice();
         newTagHistory.push(data.name);
         const depth = newTagHistory.length + 1 - initialDepth;
-        
+
         if (depth > this.m_visualizationDefinition.maxDepth) {
-            if(this.m_pluginSettings.debugMessages) {
-                console.log("Queries complete: at depth");
-            }
+            logger.debug("Queries complete: at depth");
             return;
         }
 
@@ -368,9 +356,7 @@ export class Sunburst {
 
         await this.runQuery(data.name, newTagHistory).then(result => {
             if (!result.successful) {
-                if(this.m_pluginSettings.debugMessages) {
-                    console.log("query failed");
-                }
+                logger.debug("query failed");
                 return;
             }
 
@@ -414,14 +400,12 @@ export class Sunburst {
             this.m_visualizationDefinition.ignoreFilesWithTags,
             tagsToExclude, this.m_visualizationDefinition.maxChildren);
 
-        if(this.m_pluginSettings.debugMessages) {
-            console.log(`Running node query id: ${this.m_rootData.id}`, query);
-        }
-    
+        logger.debug(`Running node query id: ${this.m_rootData.id} \n`, query);
+
         //TODO: Don't like the cast to any here
         const dv = (this.m_app as any).plugins.plugins["dataview"]?.api;
         if (!dv) {
-            console.error("Dataview plugin is not enabled.");
+            logger.error("Dataview plugin is not enabled.");
             return;
         }
 
@@ -429,7 +413,7 @@ export class Sunburst {
             const result = await dv.query(query);
             return result;
         } catch (error) {
-            console.error("Dataview Query Error:", error);
+            logger.error("Dataview Query Error:", error);
         }
     }
 }

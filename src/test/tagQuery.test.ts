@@ -20,6 +20,23 @@ describe('getQuery', () => {
         expect(result.replace(/\s+/g, ' ')).toBe(expected.replace(/\s+/g, ' '));
     });
 
+    it('Should filter tags with invalid characters', () => {
+        const result = getQuery(["#bad;tag"],
+            ["#ignore1 bla bla bla", "#ignore2"],
+            ["#filter1 foo", "#filter2"], 12);
+
+        const expected = `TABLE length(rows.file.link) AS "File Count"
+    WHERE contains(file.tags, "#ignore1") = false AND contains(file.etags, "#ignore1") = false AND contains(file.tags, "#ignore2") = false AND contains(file.etags, "#ignore2") = false\n\
+    FLATTEN file.tags AS Tag\n\
+    WHERE Tag != "#filter1" AND Tag != "#filter2"\n\
+    GROUP BY Tag\n\
+    Limit 12`;
+
+        console.log("result", result.replace(/\s+/g, ' '));
+
+        expect(result.replace(/\s+/g, ' ')).toBe(expected.replace(/\s+/g, ' '));
+    });
+
 
     it('Should produce a sane query with all the params set', () => {
         const result = getQuery(["#foo", "#bar"],

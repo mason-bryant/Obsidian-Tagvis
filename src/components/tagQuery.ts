@@ -6,10 +6,9 @@ export function getQuery(
     limit: number,
     flattened = true
 ): string {
-
-    //const requiredTagsHasNonRootTag = requiredTags.some(item => item !== "#");
-
-    requiredTags = requiredTags.filter(item => item !== "#");
+    requiredTags = filterValidTags(requiredTags);
+    ignoreFilesWithTags = filterValidTags(ignoreFilesWithTags);
+    filterTags = filterValidTags(filterTags);
 
     let fromClause = "";
     if (requiredTags.length > 0) {
@@ -52,3 +51,9 @@ export function getQuery(
     }
 
  }
+
+ function filterValidTags(tags: string[]): string[] {
+    // Matches strings that start with # followed by alphanumeric chars, dashes, slashes, and underscores
+    const tagPattern = /^#[\w\-\/]+$/;
+    return tags.filter(tag => tagPattern.test(tag));
+}

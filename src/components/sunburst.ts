@@ -13,6 +13,10 @@ interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
 
+
+const TOOLTIP_DIV_ID = "tagvis-tooltip_id"; //"obsidian-d3-tooltip";
+const TOOLTIP_CLASS = "tagvis-tooltip";
+
 export class Sunburst {
     private m_id: string;
     private m_visualizationDefinition: StarburstConfig;
@@ -28,6 +32,9 @@ export class Sunburst {
 
     //prevents re-running previous tag queries
     private uniqueTags: string[];
+
+    
+        
 
     init(app: App,
         _el: HTMLElement,
@@ -190,25 +197,22 @@ export class Sunburst {
 
         if (this.m_firstRun) {
             this.m_firstRun = false;
-            this.startQuery();
+            this.updateUIWithQuery();
         }
     }
 
     mouseoverVisNode(event: MouseEvent, data: DataNode) {
         this.displayDocumentsTooltip(event, data);
-
     }
 
     mouseleftVisNode(event: MouseEvent, data: DataNode) {
     }
 
     displayDocumentsTooltip(event: MouseEvent, data: DataNode) {
-        d3.selectAll("[id='obsidian-d3-tooltip']").remove();
+        d3.selectAll(`[id='${TOOLTIP_DIV_ID}']`).remove();
         this.m_tooltip = d3.select("body").append("div")
-            .attr("id", "obsidian-d3-tooltip")
-            .attr("class", "tagvis-tooltip")
-            .style("position", "absolute")
-            .style("pointer-events", "auto")
+            .attr("id", TOOLTIP_DIV_ID)
+            .attr("class", TOOLTIP_CLASS);
 
         this.populateTooltip(this.m_tooltip, data);
 
@@ -221,7 +225,9 @@ export class Sunburst {
         })
     }
 
-    async populateTooltip(tooltip, data) {
+    async populateTooltip(
+        tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>, 
+        data: DataNode): Promise<void> {
         const tag = data.name;
         const requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
         const requiredTagsString = requiredTags.map(tag =>
@@ -270,7 +276,7 @@ export class Sunburst {
 
     onNodeClick(data: DataNode, name: string) {
         logger.debug("nodeClick with tag " + name);
-        this.startQuery(name)
+        this.updateUIWithQuery(name)
     }
 
     hookMarkdownLinkMouseEventHandlers(
@@ -326,7 +332,7 @@ export class Sunburst {
         }
     }
 
-    startQuery(initialTag?: string) {
+    updateUIWithQuery(initialTag?: string) {
         if (!initialTag) {
             initialTag = this.m_visualizationDefinition.initialTag
         }

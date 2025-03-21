@@ -22,3 +22,8 @@
     display: inline-block;
 	margin-bottom: 3px;
 }
+
+.tagvis-tooltip {
+	position: absolute;
+	pointer-events: auto;
+}

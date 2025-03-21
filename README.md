@@ -8,15 +8,18 @@ It is very much a work in progress (including this README) so please stay tuned 
 
 ## Installation
 
+> [!Note]  
+> This plugin requires Dataview
+
+1. In Obsidian, open Settings.
+2. Under Community plugins, select Browse.
+3. Search for "tagvis" and then select it.
+4. Select Install.
+
 ### Prerelease
 1. Install the BRAT plugin (https://github.com/TfTHacker/obsidian42-brat) 
 2. Click the Add Beta button
 3. Add this repo (https://github.com/mason-bryant/Obsidian-Tagvis)
-
-### After the plugin clears review:
-Install the plugin from the Obsidian Community Plugins directory (or manually place it in your plugin folder).
-Enable it in Settings > Community Plugins.
-Open the Tag Sunburst view from the Command Palette or the plugin sidebar.
 
 ## Configuration:
 
@@ -56,7 +59,3 @@ Example:
 
 ```
 ~~~
-
-
-## Required Plugins
-* Dataview!

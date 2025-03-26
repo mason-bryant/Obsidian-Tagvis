@@ -13,10 +13,7 @@ interface ArcDatum extends d3.HierarchyRectangularNode<DataNode> {
     data: DataNode;
 }
 
-
-const TOOLTIP_DIV_ID = "tagvis-tooltip_id"; //"obsidian-d3-tooltip";
 const TOOLTIP_CLASS = "tagvis-tooltip";
-
 export class Sunburst {
     private m_id: string;
     private m_visualizationDefinition: StarburstConfig;
@@ -27,17 +24,17 @@ export class Sunburst {
     private m_app: App;
 
     private m_tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>;
-    private m_g: d3.Selection<SVGGElement, unknown, null, undefined>;
+    private m_svgGraphicsElement: d3.Selection<SVGGElement, unknown, null, undefined>;
     private m_svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 
     //prevents re-running previous tag queries
     private uniqueTags: string[];
 
-    
-        
+    private m_tooltipDivId: string;
+    private m_containerBody: HTMLElement;
 
     init(app: App,
-        _el: HTMLElement,
+        rootHTMLElement: HTMLElement,
         pluginSettings: TagvisPluginSettings,
         isualizationDefinition: StarburstConfig,
         id: string) {
@@ -50,9 +47,12 @@ export class Sunburst {
         this.m_id = id;
         this.m_rootData.id = this.m_id;
 
+        this.m_tooltipDivId = `tagvis-tooltip_id${id}`;
+        this.m_containerBody = rootHTMLElement.ownerDocument.body;
+
         const dv = (app as any).plugins.plugins["dataview"]?.api;
         if (!dv) {
-            _el.innerText = `Tagviz Error: Dataview plugin is not enabled.`;
+            rootHTMLElement.innerText = `Tagviz Error: Dataview plugin is not enabled.`;
             return;
         }
 
@@ -64,18 +64,18 @@ export class Sunburst {
         }
         this.uniqueTags = [];
 
-        if (!_el) {
+        if (!rootHTMLElement) {
             logger.error("Invalid DOM element");
             return;
         }
 
-        if ((this.m_visualizationDefinition.layout.width > _el.clientWidth) && (_el.clientWidth > 0)) {
-            this.m_visualizationDefinition.layout.width = _el.clientWidth;
+        if ((this.m_visualizationDefinition.layout.width > rootHTMLElement.clientWidth) && (rootHTMLElement.clientWidth > 0)) {
+            this.m_visualizationDefinition.layout.width = rootHTMLElement.clientWidth;
             logger.debug("Configured width is too large. Width adjusted to", this.m_visualizationDefinition.layout.width);
         }
 
-        d3.select(_el).selectAll("*").remove();
-        this.m_svg = d3.select(_el).append("span")
+        d3.select(rootHTMLElement).selectAll("*").remove();
+        this.m_svg = d3.select(rootHTMLElement).append("span")
             .append("svg")
             .attr("id", "tagvis-root-svg")
             .attr("width", this.m_visualizationDefinition.layout.width)
@@ -84,7 +84,7 @@ export class Sunburst {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .style("background", this.m_visualizationDefinition.background);
 
-        this.m_g = this.m_svg.append("g")
+        this.m_svgGraphicsElement = this.m_svg.append("g")
             .attr("id", "tagvis-root-g")
             .attr("transform", `translate(${this.m_visualizationDefinition.layout.width / 2}, ${this.m_visualizationDefinition.layout.height / 2})`)
             .attr("fill-opacity", 0.6);
@@ -124,7 +124,7 @@ export class Sunburst {
     render() {
         const format = d3.format(",d");
 
-        const color = this.getColorFunction();
+        const colorFunction = this.getColorFunction();
         const radius = Math.min(this.m_visualizationDefinition.layout.width, this.m_visualizationDefinition.layout.height) / 2 - 20;
 
         const partition = data => d3.partition()
@@ -141,10 +141,10 @@ export class Sunburst {
             .outerRadius(d => d.y1 - 1);
         const root = partition(this.m_rootData);
 
-        this.m_g.selectAll<SVGPathElement, ArcDatum>("path")
+        this.m_svgGraphicsElement.selectAll<SVGPathElement, ArcDatum>("path")
             .data(root.descendants().filter(d => d.depth) as ArcDatum[])
             .join("path")
-            .attr("fill", d => { while (d.depth > 1) (d as any) = d.parent; return color(d.data.name); })
+            .attr("fill", d => { while (d.depth > 1) (d as any) = d.parent; return colorFunction(d.data.name); })
             .attr("d", arc)
             .attr("pointer-events", "auto")
             .on("click", ((event: MouseEvent, d: ArcDatum) => {
@@ -159,7 +159,7 @@ export class Sunburst {
             .append("title")
             .text(d => `${d.ancestors().map(d => d.data.name).reverse().join("/")}\n${format(d.value ?? 0)}`);
 
-        this.m_g.selectAll("text")
+        this.m_svgGraphicsElement.selectAll("text")
             .data(root.descendants().filter(d => d.depth && (d.y0 + d.y1) / 2 * (d.x1 - d.x0) > 10))
             .join("text")
             .attr("transform", function (d) {
@@ -182,13 +182,13 @@ export class Sunburst {
             }))
             .text(d => d.data.getTruncatedName(this.m_visualizationDefinition.maxTagLength));
 
-        this.m_g.append("circle")
+        this.m_svgGraphicsElement.append("circle")
             .attr("r", radius / 5)
             .attr("fill", "white")
             .attr("stroke", "black")
             .attr("stroke-width", 1);
 
-        this.m_g.append("text")
+        this.m_svgGraphicsElement.append("text")
             .attr("text-anchor", "middle")
             .attr("dy", "0.35em")
             .attr("font-size", this.m_visualizationDefinition.fontsize)
@@ -208,10 +208,11 @@ export class Sunburst {
     mouseleftVisNode(event: MouseEvent, data: DataNode) {
     }
 
+
     displayDocumentsTooltip(event: MouseEvent, data: DataNode) {
-        d3.selectAll(`[id='${TOOLTIP_DIV_ID}']`).remove();
-        this.m_tooltip = d3.select("body").append("div")
-            .attr("id", TOOLTIP_DIV_ID)
+        this.m_containerBody.querySelectorAll(`.${TOOLTIP_CLASS}`).forEach(el => el.remove());
+        this.m_tooltip = d3.select(this.m_containerBody).append("div")
+            .attr("id", this.m_tooltipDivId)
             .attr("class", TOOLTIP_CLASS);
 
         this.populateTooltip(this.m_tooltip, data);
@@ -228,6 +229,7 @@ export class Sunburst {
     async populateTooltip(
         tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, unknown>, 
         data: DataNode): Promise<void> {
+
         const tag = data.name;
         const requiredTags = tag ? [...data.tagHistory, tag] : [...data.tagHistory];
         const requiredTagsString = requiredTags.map(tag =>

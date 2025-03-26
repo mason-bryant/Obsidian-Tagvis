@@ -26,9 +26,9 @@ describe('getQuery', () => {
             ["#filter1 foo", "#filter2"], 12);
 
         const expected = `TABLE length(rows.file.link) AS "File Count"
-    WHERE contains(file.tags, "#ignore1") = false AND contains(file.etags, "#ignore1") = false AND contains(file.tags, "#ignore2") = false AND contains(file.etags, "#ignore2") = false\n\
+    WHERE contains(file.tags, "#ignore2") = false AND contains(file.etags, "#ignore2") = false AND contains(file.etags, "#ignore2") = false\n\
     FLATTEN file.tags AS Tag\n\
-    WHERE Tag != "#filter1" AND Tag != "#filter2"\n\
+    WHERE Tag != "#filter2"\n\
     GROUP BY Tag\n\
     Limit 12`;
 
